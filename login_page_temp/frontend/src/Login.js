@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./Login.css";
+import  "./Login.css";
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
@@ -49,7 +49,7 @@ const Login = () => {
 
 
   return (
-    <div className="app-container">
+    <div className="login-container">
       {/* Brand Outside the Card */}
       <h1 className="brand">NEONMIND</h1>
 
