@@ -11,6 +11,10 @@ const Login = () => {
   const navigate = useNavigate();
   const handleLogin = async (e) => {
     e.preventDefault();
+     if (!isLogin && password !== confirmPassword) {
+    alert("Passwords do not match!");
+    return;
+     }
     if (isLogin) {
       // Login
       const res = await fetch("http://localhost:5000/login", {

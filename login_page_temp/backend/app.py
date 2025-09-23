@@ -1,3 +1,4 @@
+# app.py
 from flask import Flask
 from flask_cors import CORS
 from auth_routes import auth_bp  # import our routes from auth_routes.py
