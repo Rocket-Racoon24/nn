@@ -5,7 +5,15 @@ body, html, #root {
   font-family: "Poppins", sans-serif;
   background: #0f0f0f;
   color: #fff;
-  height: 100%;
+}
+
+/* --- FIX 1: Main Container Layout --- */
+/* This is the key fix that stacks all your page sections vertically. */
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 /* Navbar */
@@ -16,6 +24,8 @@ body, html, #root {
   padding: 20px 50px;
   background: linear-gradient(90deg, #ff00ff, #00ffff);
   color: #fff;
+  width: 100%; /* Ensures navbar is full-width */
+  box-sizing: border-box; /* Prevents padding from breaking width */
 }
 
 .logo {
@@ -28,7 +38,16 @@ body, html, #root {
   list-style: none;
   gap: 20px;
   font-size: 18px;
+}
+
+/* Style for clickable nav links */
+.nav-links li {
   cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.nav-links li:hover {
+  color: #111; /* Darker color on hover for contrast */
 }
 
 /* Hero Section */
@@ -36,6 +55,8 @@ body, html, #root {
   text-align: center;
   padding: 100px 20px;
   background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hero h2 {
@@ -73,9 +94,12 @@ body, html, #root {
 .features {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap; /* Allows cards to wrap on smaller screens */
   gap: 30px;
   padding: 80px 20px;
   background: #121212;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .feature-card {
@@ -97,10 +121,44 @@ body, html, #root {
   color: #00ffff;
 }
 
+/* --- FIX 3: About Us Section (Properly Styled) --- */
+.about-section {
+  background-color: #1a1a2e;
+  text-align: center;
+  width: 100%;
+  padding: 80px 20px; /* Added consistent padding */
+  box-sizing: border-box;
+}
+
+.about-section h2 {
+  font-size: 2.2rem;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.about-section p {
+  max-width: 650px;
+  margin: 0 auto;
+  line-height: 1.6;
+  color: #c0c0c0;
+}
+
 /* Footer */
 .footer {
   text-align: center;
-  padding: 20px;
+  padding: 40px 20px; /* Increased padding */
   background: #0f0f0f;
   border-top: 1px solid #222;
+  width: 100%;
+  box-sizing: border-box;
+} /* --- FIX 2: SYNTAX ERROR --- The missing closing brace '}' is now here. */
+
+/* Style for the link in the footer */
+.footer a {
+    color: #00ffff;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
 }
