@@ -508,7 +508,7 @@ function Home() {
           font-weight: bold;
           margin-bottom: 20px;
         }
-        .back-btn:hover {
+        .back-btn:hover {-
           background: #475569;
         }
         .summary-content-box {
