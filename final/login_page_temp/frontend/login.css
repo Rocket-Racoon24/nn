@@ -1,0 +1,279 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #1b212a;
+}
+
+.bg {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #1b212a;
+  overflow: hidden;
+}
+
+.animated-bg {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  top: 0; left: 0;
+  z-index: 0;
+}
+
+/* Circuit glow grid, shimmer effect */
+.animated-bg::before {
+  content: '';
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  background: repeating-linear-gradient(
+    to right, #21ffce18 0 2px, transparent 2px 44px
+  ), repeating-linear-gradient(
+    to bottom, #21ffce14 0 2px, transparent 2px 44px
+  );
+  opacity: 0.23;
+  animation: moveBg 10s linear infinite;
+}
+
+@keyframes moveBg {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 44px 44px, 44px 88px; }
+}
+
+/* Neon animated circuit nodes */
+.circuit-node {
+  position: absolute;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #21ffce 70%, transparent 100%);
+  box-shadow:
+    0 0 32px 6px #21ffcea0,
+    0 0 12px 2px #21ffceb6;
+  opacity: 0.7;
+  animation: nodeGlow 3s infinite alternate;
+}
+.node1 { top: 18%; left: 21%; animation-delay: 0s;}
+.node2 { top: 68%; left: 30%; animation-delay: .7s;}
+.node3 { top: 42%; left: 78%; animation-delay: 1.4s;}
+.node4 { top: 74%; left: 84%; animation-delay: 2.1s;}
+
+@keyframes nodeGlow {
+  0% { filter: blur(0px); opacity: .68;}
+  100% { filter: blur(2px); opacity: .84;}
+}
+
+.login-container {
+  background: rgba(35,43,54,0.71);
+  padding: 38px 38px 24px 38px;
+  border-radius: 18px;
+  box-shadow: 0 0 48px 6px #21ffce29;
+  min-width: 320px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(12px) saturate(1.12);
+  animation: fadeInScale 1.2s cubic-bezier(.36,.23,.21,.85);
+  border: 1px solid #18e5acee;
+}
+
+.glass {
+  background: linear-gradient(120deg, rgba(35,43,54,0.81) 58%, rgba(33,255,206,0.12) 101%);
+}
+
+@keyframes fadeInScale {
+  0% { opacity: 0; transform: scale(0.77);}
+  60% { opacity: .7; transform: scale(1.12);}
+  100% { opacity: 1; transform: scale(1);}
+}
+
+.neon-title {
+  font-size: 2.23rem;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 700;
+  color: #21ffce;
+  margin-bottom: 10px;
+  text-shadow:
+    0 0 28px #21ffcec5,
+    0 0 88px #21ffce9b,
+    0 0 8px #21ffce;
+  letter-spacing: 1.5px;
+  text-align: center;
+  animation: neonPulseSexy 2.8s infinite alternate;
+  position: relative;
+  overflow: visible;
+}
+
+.shine::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -30%;
+  height: 100%; width: 130%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.09) 0%, rgba(33,255,206,0.15) 48%, transparent 100%);
+  pointer-events: none;
+  opacity: .71;
+  animation: shineSweep 3.3s infinite;
+}
+
+@keyframes neonPulseSexy {
+  0%, 100% {text-shadow: 0 0 28px #21ffcec5, 0 0 88px #21ffce9b, 0 0 8px #21ffce;}
+  73% {text-shadow: 0 0 52px #21ffcef7, 0 0 96px #21ffcebf, 0 0 18px #21ffce;}
+}
+
+@keyframes shineSweep {
+  0% { left: -30%; opacity: .71; }
+  50% { left: 48%; opacity: 1;}
+  100% { left: 130%; opacity: .35;}
+}
+
+.welcome {
+  color: white;
+  font-size: 1.33rem;
+  margin: 6px 0 7px 0;
+  font-weight: 540;
+  text-align: center;
+  opacity: .97;
+  animation: fadeInRight 1.18s .22s backwards;
+  text-shadow: 0 0 8px #21ffce18;
+}
+
+.subtitle {
+  color: #b1b8c6;
+  font-size: 1.04rem;
+  margin-bottom: 24px;
+  text-align: center;
+  opacity: .85;
+  animation: fadeInRight 1.14s .24s backwards;
+}
+
+@keyframes fadeInRight {
+  0% { opacity: 0; transform: translateX(22px);}
+  100% { opacity: 1; transform: none;}
+}
+
+.input {
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 15px;
+  background: #1b212a;
+  border: none;
+  border-radius: 8px;
+  color: #f2f2f2;
+  font-size: 1.02rem;
+  outline: none;
+  box-shadow: 0 2px 11px 1px #21ffce26 inset;
+  transition: box-shadow .3s, background .18s, color .14s;
+  position: relative;
+  z-index: 2;
+}
+
+.input::placeholder {
+  color: #6ffeecab;
+  opacity: 1;
+  letter-spacing: .5px;
+  font-size: 1.02rem;
+  transition: color .19s;
+}
+
+.input.focus {
+  background: #25353b;
+  box-shadow: 0 0 26px 5px #21ffce61, 0 8px 18px 0 #21ffce22 inset;
+  color: #21ffce;
+  animation: fieldGlow2 .64s;
+}
+
+@keyframes fieldGlow2 {
+  0% { box-shadow: 0 0 2px 0 #21ffcec2;}
+  100% { box-shadow: 0 0 26px 5px #21ffce61;}
+}
+
+.login-btn {
+  width: 100%;
+  padding: 15px;
+  background: #20ffb5;
+  color: #232b36;
+  font-size: 1.13rem;
+  font-weight: 720;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow:
+    0 0 68px 6px #21ffce57,
+    0 0 8px 0px #21ffce28;
+  transition: background .19s, box-shadow .16s, color .13s;
+  margin-top: 5px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-btn {
+  border: 2px solid #21ffce68;
+  box-sizing: border-box;
+}
+
+.neon-btn::after {
+  content: '';
+  display: block;
+  position: absolute;
+  left: -40%; top: 0;
+  height: 100%; width: 60%;
+  background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.13) 54%, transparent 100%);
+  opacity: .33;
+  pointer-events: none;
+  transition: left .4s;
+}
+
+.neon-btn:hover, .neon-btn:focus {
+  background: #1be693;
+  color: #17212b;
+  box-shadow: 0 0 88px 11px #21ffceed, 0 0 18px 2px #21ffce84;
+}
+.neon-btn:hover::after {
+  left: 48%;
+  opacity: .67;
+}
+
+.signup {
+  color: #b1b8c6;
+  margin-top: 8px;
+  font-size: 1.04rem;
+  text-align: center;
+  letter-spacing: .2px;
+}
+
+.signup-link {
+  color: #21ffce;
+  cursor: pointer;
+  font-weight: 510;
+  margin-left: 4px;
+  text-decoration: underline;
+  transition: color .17s, text-shadow .17s;
+  text-shadow: 0 0 19px #21ffce5c;
+}
+
+.signup-link:hover {
+  color: #1be693;
+  text-shadow: 0 0 32px #21ffceab, 0 0 11px #21ffce90;
+  animation: jumpGlow .7s;
+}
+
+.pulse {
+  animation: pulseGlow 1.5s infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { text-shadow: 0 0 14px #21ffce77;}
+  100% { text-shadow: 0 0 36px #21ffcebc;}
+}
+
+@keyframes jumpGlow {
+  0% { transform: scale(1);}
+  40% { transform: scale(1.11);}
+  100% { transform: scale(1);}
+}
