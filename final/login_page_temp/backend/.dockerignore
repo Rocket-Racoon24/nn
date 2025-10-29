@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment files (we set these in Azure)
+.env
+env.txt
+.env*
+
+# OS and IDE files
+.DS_Store
+.vscode/
+
+# Git
+.git/
+
+# Llama.cpp source (we git clone it)
+llama.cpp/

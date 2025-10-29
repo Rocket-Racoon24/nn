@@ -1,0 +1,8 @@
+# Ignore LLM models
+*.gguf
+
+# Ignore Python cache
+__pycache__/
+
+# Ignore environment variables and secrets
+.env

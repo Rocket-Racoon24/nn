@@ -8,3 +8,6 @@ PyJWT==2.9.0
 google-generativeai
 pypdf2
 yt-dlp
+gunicorn
+requests
+llama-cpp-python
