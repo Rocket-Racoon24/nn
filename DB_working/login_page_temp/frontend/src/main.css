@@ -1,26 +1,81 @@
-/* Reset */
+/* --- Global Styles --- */
 body, html, #root {
   margin: 0;
   padding: 0;
   font-family: "Poppins", sans-serif;
-  background: #0f0f0f;
-  color: #fff;
+  /* Beautiful gradient background with neon theme */
+  background: linear-gradient(135deg, 
+    #0a0f0f 0%, 
+    #05080a 25%, 
+    #0a1a1f 50%, 
+    #051a1f 75%, 
+    #0a0f0f 100%);
+  background-attachment: fixed;
+  color: #D6D9D8;
   height: 100%;
 }
 
-/* Navbar */
+/* --- Main Container (Fixes White Space) --- */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensures it's at least as tall as the screen */
+}
+
+/* --- Neon Gradients & Glows --- */
+.highlight {
+  /* Green-to-cyan text gradient */
+  background: linear-gradient(90deg, #00ff9c, #00e0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Stacked neon glow */
+  filter: 
+    drop-shadow(0 0 2px rgba(0, 255, 156, 1))
+    drop-shadow(0 0 8px rgba(0, 255, 156, 0.6))
+    drop-shadow(0 0 15px rgba(0, 224, 255, 0.4));
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 40px;
+  /* Applying the same highlight style to all section titles */
+  background: linear-gradient(90deg, #00ff9c, #00e0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: 
+    drop-shadow(0 0 2px rgba(0, 255, 156, 0.8))
+    drop-shadow(0 0 8px rgba(0, 255, 156, 0.5));
+}
+
+/* --- Navbar --- */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 50px;
-  background: linear-gradient(90deg, #ff00ff, #00ffff);
-  color: #fff;
+  background: transparent;
+  color: #D6D9D8; 
+  /* Glowing bottom border */
+  border-bottom: 1px solid #00ff9c;
+  box-shadow: 0 1px 20px rgba(0, 255, 156, 0.3);
 }
 
 .logo {
   font-size: 28px;
   font-weight: bold;
+  /* Apply the highlight style to the logo */
+  background: linear-gradient(90deg, #00ff9c, #00e0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: 
+    drop-shadow(0 0 2px rgba(0, 255, 156, 1))
+    drop-shadow(0 0 8px rgba(0, 255, 156, 0.6))
+    drop-shadow(0 0 15px rgba(0, 224, 255, 0.4));
 }
 
 .nav-links {
@@ -28,79 +83,205 @@ body, html, #root {
   list-style: none;
   gap: 20px;
   font-size: 18px;
-  cursor: pointer;
 }
 
-/* Hero Section */
+.nav-links li {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+
+.nav-links li:hover {
+  color: #00ff9c;
+  text-shadow: 0 0 10px rgba(0, 255, 156, 0.7);
+  background: rgba(0, 255, 156, 0.1);
+  transform: translateY(-2px);
+}
+
+.logo {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+  background: rgba(0, 255, 156, 0.1);
+}
+
+/* --- Hero Section --- */
 .hero {
   text-align: center;
   padding: 100px 20px;
-  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  background: transparent;
 }
 
 .hero h2 {
-  font-size: 48px;
+  font-size: 3.5rem; /* Larger text */
   margin-bottom: 20px;
 }
 
-.highlight {
-  color: #00ffff;
-  text-shadow: 0 0 10px #00ffff;
-}
-
 .hero p {
-  font-size: 20px;
+  font-size: 1.25rem; /* Larger text */
   margin-bottom: 30px;
+  color: #aaa; /* Softer color for subtitle */
 }
 
 .cta {
-  background: linear-gradient(90deg, #ff00ff, #00ffff);
+  /* Gradient button */
+  background: linear-gradient(90deg, #00ff9c, #00e0ff);
   border: none;
   padding: 15px 40px;
   font-size: 18px;
-  color: white;
+  color: #000; 
+  font-weight: bold;
   cursor: pointer;
   border-radius: 30px;
   transition: 0.3s ease-in-out;
+  /* Static glow */
+  box-shadow: 0 0 15px rgba(0, 255, 156, 0.3);
 }
 
 .cta:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 20px #00ffff;
+  /* Intense hover glow */
+  box-shadow: 
+    0 0 20px rgba(0, 255, 156, 0.8),
+    0 0 35px rgba(0, 224, 255, 0.6);
 }
 
-/* Features */
-.features {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  padding: 80px 20px;
-  background: #121212;
+/* --- Section Padding --- */
+.features-section, .how-it-works-section, .testimonials-section {
+  padding: 40px 50px 80px 50px;
 }
 
-.feature-card {
-  background: #1f1f1f;
+/* --- Frosted Glass Cards --- */
+.feature-card, .step-card, .testimonial-card {
+  /* Dark, semi-transparent "glass" background */
+  background: rgba(14, 25, 27, 0.6);
+  /* Frosted glass blur */
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   padding: 30px;
   border-radius: 15px;
-  width: 250px;
   text-align: center;
   transition: 0.3s ease-in-out;
+  /* Subtle neon border */
+  border: 1px solid rgba(0, 255, 156, 0.2);
+  /* Subtle static glow */
+  box-shadow: 0 0 15px rgba(0, 255, 156, 0.1);
 }
 
-.feature-card:hover {
+.feature-card:hover, .step-card:hover, .testimonial-card:hover {
   transform: translateY(-10px);
-  box-shadow: 0 0 20px #ff00ff;
+  /* Brighter border and glow on hover */
+  border-color: rgba(0, 255, 156, 0.7);
+  box-shadow: 0 0 25px rgba(0, 255, 156, 0.4);
+}
+
+/* --- Features Grid --- */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+.feature-card .card-icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 20px auto;
+  /* Neon green for the icon */
+  color: #00ff9c; 
 }
 
 .feature-card h3 {
-  margin-bottom: 15px;
-  color: #00ffff;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  color: #fff;
 }
 
-/* Footer */
+/* --- How It Works Grid (New) --- */
+.how-it-works-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.step-card {
+  flex: 1;
+  max-width: 300px;
+}
+
+.step-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #000;
+  background: linear-gradient(90deg, #00ff9c, #00e0ff);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  margin: 0 auto 20px auto;
+}
+
+.step-arrow {
+  font-size: 2.5rem;
+  color: #00ff9c;
+}
+
+/* --- Testimonials Grid (New) --- */
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.testimonial-card p {
+  font-style: italic;
+  font-size: 1.1rem;
+  color: #eee;
+}
+
+.testimonial-card span {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+  color: #00ff9c;
+}
+
+/* --- Footer --- */
 .footer {
   text-align: center;
   padding: 20px;
-  background: #0f0f0f;
-  border-top: 1px solid #222;
+  background: transparent;
+  /* Glowing top border */
+  border-top: 1px solid #00ff9c;
+  box-shadow: 0 -1px 20px rgba(0, 255, 156, 0.3);
+  color: #999;
+  /* Pushes footer to the bottom */
+  margin-top: auto; 
 }
+
+/* --- Responsive Design --- */
+@media (max-width: 900px) {
+  .features-grid, .how-it-works-grid, .testimonials-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .how-it-works-grid {
+    flex-direction: column;
+  }
+  .step-arrow {
+    transform: rotate(90deg);
+  }
+  .navbar {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+
