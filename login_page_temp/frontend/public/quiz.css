@@ -1,0 +1,82 @@
+/* quiz.css */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background-image: linear-gradient(to bottom right, #052962, #180338, #340749);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.quiz-container {
+  text-align: center;
+}
+
+.start-button {
+  padding: 15px 40px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.start-button:hover {
+  transform: scale(1.05);
+}
+
+.flashcard {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 20px;
+  width: 80vw;
+  max-width: 800px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.question-text {
+  font-size: 1.8rem;
+  margin: 20px 0 40px;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.option-button {
+  padding: 20px;
+  font-size: 1.2rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.option-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.option-button.correct {
+    background-color: #16a34a;
+    border-color: #16a34a;
+}
+.option-button.incorrect {
+    background-color: #dc2626;
+    border-color: #dc2626;
+}
+
+.feedback-text {
+    margin-top: 20px;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.score-text {
+    font-size: 2rem;
+}
