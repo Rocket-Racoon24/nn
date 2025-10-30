@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import RoadmapGenerator from './RoadmapGenerator';
 import InteractiveRoadmap from './InteractiveRoadmap';
-import './styles/Home.css';
+import styles from './Home.module.css';
 import { Profile } from "./profile";
 
 function Home() {
@@ -45,17 +45,6 @@ function Home() {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          
-          // Load saved roadmaps
-          if (data.user_data && data.user_data.roadmaps) {
-            const savedProjects = data.user_data.roadmaps.map(roadmap => ({
-              id: Date.now() + Math.random(), // Generate unique ID
-              topic: roadmap.topic,
-              topics: roadmap.roadmap_data.topics,
-              created_at: roadmap.created_at
-            }));
-            setProjects(savedProjects);
-          }
         } else {
           localStorage.removeItem("token");
           window.location.href = "/login";
@@ -99,14 +88,7 @@ const handleShowProfile = () => {
     setShowToolsMenu(false);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch("http://localhost:5000/ask", { 
-        method: "POST", 
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData 
-      });
+      const res = await fetch("http://localhost:5000/ask", { method: "POST", body: formData });
       if (!res.ok) throw new Error("Failed to connect to chatbot");
       const data = await res.json();
       setChatMessages((prev) => [...prev, { sender: "bot", text: data.chat_reply }]);
@@ -133,36 +115,39 @@ const handleShowProfile = () => {
 
   return (
     <>
-      <div className="home-container">
-        <aside className="sidebar">
-          <h2 className="logo">🌌 NeonMind</h2>
+      <div className={styles['home-container']}>
+        <aside className={`${styles['sidebar']} ${!isSidebarOpen ? styles['sidebar-collapsed'] : ''}`} aria-expanded={isSidebarOpen}>
+          <button className={styles['sidebar-toggle']} onClick={() => setIsSidebarOpen(prev => !prev)} title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}>
+            {isSidebarOpen ? '◀' : '▶'}
+          </button>
+          <h2 className={styles['logo']}>🌌 NeonMind</h2>
           
-    <button className="new-project-btn" onClick={handleNewProject}>
+    <button className={styles['new-project-btn']} onClick={handleNewProject}>
         + New Project
     </button>
-    <h3 className="recent">RECENT PROJECTS</h3>
+    <h3 className={styles['recent']}>RECENT PROJECTS</h3>
           {projects.length > 0 ? (
-            <ul className="project-list">
+            <ul className={styles['project-list']}>
               {projects.map(p => (
-                <li key={p.id} className={activeProjectId === p.id ? 'active' : ''} onClick={() => setActiveProjectId(p.id)}>
+                <li key={p.id} className={activeProjectId === p.id ? styles['active'] : undefined} onClick={() => setActiveProjectId(p.id)}>
                   {p.topic}
                 </li>
               ))}
             </ul>
-          ) : (<p className="no-projects">Generate a new roadmap.</p>)}
+          ) : (<p className={styles['no-projects']}>Generate a new roadmap.</p>)}
         </aside>
 
-        <main className="main">
-          <header className="top-bar">
+        <main className={styles['main']}>
+          <header className={styles['top-bar']}>
             <div style={{ flex: 1 }}></div>
-<button className="summary-btn" onClick={() => setCurrentView(prev => prev === 'summary' ? 'projects' : 'summary')} title="View Summary">
+<button className={styles['summary-btn']} onClick={() => setCurrentView(prev => prev === 'summary' ? 'projects' : 'summary')} title="View Summary">
     📝
 </button>
-<div className="profile" onClick={() => setShowProfileMenu(!showProfileMenu)}>
+<div className={styles['profile']} onClick={() => setShowProfileMenu(!showProfileMenu)}>
     {user ? user.name[0].toUpperCase() : "?"}
 </div>
 {showProfileMenu && (
-    <div className="profile-menu">
+    <div className={styles['profile-menu']}>
     <p onClick={handleShowProfile}>👤 {user ? user.name : "Profile"}</p>
     <p>⚙️ Settings</p>
     <p onClick={() => { localStorage.removeItem("token"); window.location.href = "/login"; }}>
@@ -191,17 +176,17 @@ const handleShowProfile = () => {
 ) : (
     summaryContent ? (
         <div className="summary-view">
-            <button className="back-btn" onClick={() => setCurrentView('projects')}>
+            <button className={styles['back-btn']} onClick={() => setCurrentView('projects')}>
                 &larr; Back to Projects
             </button>
-            <h2 className="neon">Generated Summary</h2>
-            <div className="summary-content-box">
-                <pre className="summary-text">{summaryContent}</pre>
+            <h2 className={styles['neon']}>Generated Summary</h2>
+            <div className={styles['summary-content-box']}>
+                <pre className={styles['summary-text']}>{summaryContent}</pre>
             </div>
         </div>
     ) : (
-        <div className="no-summary-view">
-            <div className="no-summary-card">
+        <div className={styles['no-summary-view']}>
+            <div className={styles['no-summary-card']}>
                 <h1>Create a summary to see it here...</h1>
             </div>
         </div>
@@ -211,23 +196,23 @@ const handleShowProfile = () => {
       </div>
 
       {/* --- Full Chatbot UI (Restored) --- */}
-      <div className="chatbot" onClick={() => setShowChatbot(!showChatbot)}>💬</div>
+      <div className={styles['chatbot']} onClick={() => setShowChatbot(!showChatbot)}>💬</div>
       {showChatbot && (
-         <div className="chatbot-window">
-             <div className="chatbot-header">Xiao (✿◠‿◠)</div>
-             <div className="chatbot-body" ref={chatbotBodyRef}>
+         <div className={styles['chatbot-window']}>
+             <div className={styles['chatbot-header']}>Xiao (✿◠‿◠)</div>
+             <div className={styles['chatbot-body']} ref={chatbotBodyRef}>
                  {chatMessages.map((msg, i) => (
-                     <div key={i} className={`chat-msg ${msg.sender === "user" ? "user" : "bot"}`}>
+                     <div key={i} className={`${styles['chat-msg']} ${msg.sender === 'user' ? styles['user'] : styles['bot']}`}>
                          {msg.text}
                      </div>
                  ))}
              </div>
              {(pdfFiles.length > 0 || youtubeUrl) && (
-  <div className="attachment-indicator">
+  <div className={styles['attachment-indicator']}>
     {pdfFiles.map(file => (
-  <div key={file.name} className="attachment-item">
+  <div key={file.name} className={styles['attachment-item']}>
     <span>📄 {file.name}</span>
-    <button onClick={() => handleRemoveFile(file.name)} className="remove-file-btn">
+    <button onClick={() => handleRemoveFile(file.name)} className={styles['remove-file-btn']}>
       &times;
     </button>
   </div>
@@ -235,24 +220,24 @@ const handleShowProfile = () => {
     {youtubeUrl && <p>🔗 YouTube URL attached</p>}
   </div>
 )}
-<div className="chatbot-footer-container">
+<div className={styles['chatbot-footer-container']}>
   {showToolsMenu && (
-    <div className="tools-menu">
-      <label className="tool-option" onClick={() => fileInputRef.current.click()}>
+    <div className={styles['tools-menu']}>
+      <label className={styles['tool-option']} onClick={() => fileInputRef.current.click()}>
         📄 Upload PDF
       </label>
-      <div className="tool-option-url">
+      <div className={styles['tool-option-url']}>
         <span>🔗 YouTube URL</span>
         <input
           type="text"
-          className="url-input"
+          className={styles['url-input']}
           placeholder="Paste link and type a message..."
           onBlur={(e) => setYoutubeUrl(e.target.value)}
         />
       </div>
     </div>
   )}
-  <div className="chatbot-footer">
+  <div className={styles['chatbot-footer']}>
     <input
       type="file" multiple
       ref={fileInputRef}
@@ -260,16 +245,16 @@ const handleShowProfile = () => {
       style={{ display: 'none' }}
       accept=".pdf"
     />
-    <button className="tool-btn" onClick={() => setShowToolsMenu(!showToolsMenu)}>+</button>
+    <button className={styles['tool-btn']} onClick={() => setShowToolsMenu(!showToolsMenu)}>+</button>
     <input
       type="text"
-      className="chat-input"
+      className={styles['chat-input']}
       placeholder="Ask something..."
       value={chatInput}
       onChange={(e) => setChatInput(e.target.value)}
       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
     />
-    <button className="send-btn" onClick={handleSendMessage}>➤</button>
+    <button className={styles['send-btn']} onClick={handleSendMessage}>➤</button>
   </div>
 </div>
          </div>
