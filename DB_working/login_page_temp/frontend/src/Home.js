@@ -4,6 +4,8 @@ import RoadmapGenerator from './RoadmapGenerator';
 import InteractiveRoadmap from './InteractiveRoadmap';
 import styles from './Home.module.css';
 import { Profile } from "./profile";
+import Pomodoro from './Pomodoro';
+import { PomodoroPanel } from "./Pomodoro";
 
 function Home() {
   // --- General State ---
@@ -16,6 +18,10 @@ function Home() {
   // --- Roadmap State ---
   const [projects, setProjects] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState(null);
+
+// --- Pomodoro State ---
+  const [pomodoroOpen, setPomodoroOpen] = useState(false);
+  const clockRef = useRef(null);  
 
   // --- Chatbot State (Restored) ---
   const [showChatbot, setShowChatbot] = useState(false);
@@ -140,6 +146,24 @@ const handleShowProfile = () => {
         <main className={styles['main']}>
           <header className={styles['top-bar']}>
             <div style={{ flex: 1 }}></div>
+<div
+  ref={clockRef}
+  title="Pomodoro Timer"
+  onClick={() => setPomodoroOpen((o) => !o)}
+  style={{
+    display: 'inline-block',
+    marginRight: 16,
+    cursor: 'pointer',
+    fontSize: 22,
+    userSelect: 'none',
+    verticalAlign: 'middle',
+  }}
+>
+  ⏱️
+</div>
+<PomodoroPanel isOpen={pomodoroOpen} setIsOpen={setPomodoroOpen} anchorRef={clockRef} />
+
+
 <button className={styles['summary-btn']} onClick={() => setCurrentView(prev => prev === 'summary' ? 'projects' : 'summary')} title="View Summary">
     📝
 </button>
