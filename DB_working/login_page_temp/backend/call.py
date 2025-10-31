@@ -1,25 +1,26 @@
-# call.py
 from flask import Flask
 from flask_cors import CORS
-
-# --- Make sure these imports are correct ---
-from auth_routes import auth_bp
+from threading import Thread
+from auth_routes import auth_bp, init_mail, cleanup_unverified_users
 from chatbot_routes import chatbot_bp
 from roadmap_routes import roadmap_bp
 
 app = Flask(__name__)
-CORS(app) # Handles CORS permissions
+CORS(app)
 
-# A secret key is required for session management
 app.secret_key = 'a-strong-and-unique-secret-key-for-sessions'
 
-# --- This line is likely missing or incorrect ---
-# It tells Flask to use the routes from auth_routes.py (like /login)
-app.register_blueprint(auth_bp)
+# Initialize Flask-Mail
+init_mail(app)
 
-# --- Make sure your other blueprints are also registered ---
+# Register Blueprints
+app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(chatbot_bp)
 app.register_blueprint(roadmap_bp)
+
+# Start auto-cleanup background thread
+cleanup_thread = Thread(target=cleanup_unverified_users, daemon=True)
+cleanup_thread.start()
 
 @app.route('/')
 def home():

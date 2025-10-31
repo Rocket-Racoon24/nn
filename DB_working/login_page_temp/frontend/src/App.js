@@ -5,6 +5,7 @@ import Home from "./Home";
 import Login from "./Login";
 import Main from "./main";
 import ProtectedRoute from "./ProtectedRoute";
+import ResetPassword from "./ResetPassword";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Main />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/home"
           element={

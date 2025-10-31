@@ -1,10 +1,23 @@
+# Core Flask and Utilities
 Flask==3.0.0
 Flask-Cors==4.0.0
-pymongo==4.7.2
-python-dotenv==1.0.0
 Werkzeug==3.0.1
+python-dotenv==1.0.0
+
+# Database
+pymongo==4.7.2
 dnspython==2.7.0
+
+# Authentication & Security
 PyJWT==2.9.0
+
+# Email Support
+Flask-Mail==0.9.1
+
+# Background Scheduling (for cleanup thread, optional but safer)
+schedule==1.2.1
+
+# AI / Other Tools
 google-generativeai
 pypdf2
 yt-dlp
