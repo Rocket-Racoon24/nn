@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom"; // Your navigation hook
 import "./main.css"; // The new stylesheet
 
 function Main() {
   const navigate = useNavigate(); // Your hook from react-router-dom
+  const starsRef = useRef(null);
 
   // This is your original function, it's unchanged and will work
   const handleGetStarted = () => {
@@ -41,8 +42,59 @@ function Main() {
     }
   };
 
+  // Generate stars for starry background effect
+  useEffect(() => {
+    const starsContainer = starsRef.current;
+    if (!starsContainer) return;
+
+    // Clear existing stars
+    starsContainer.innerHTML = '';
+
+    // Number of stars to create
+    const numStars = 150;
+
+    for (let i = 0; i < numStars; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      
+      // Random position
+      const x = Math.random() * 100;
+      const y = Math.random() * 100;
+      
+      // Random size (small, medium, large) - minimum 1px for visibility
+      const size = Math.random() * 2 + 1;
+      
+      // Random twinkle delay for variety
+      const delay = Math.random() * 3;
+      
+      // Random color - mostly white with some cyan/neon stars
+      const colors = ['#ffffff', '#ffffff', '#ffffff', '#00ff9c', '#00e0ff', '#ffffff'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      star.style.left = `${x}%`;
+      star.style.top = `${y}%`;
+      star.style.width = `${size}px`;
+      star.style.height = `${size}px`;
+      star.style.animationDelay = `${delay}s`;
+      star.style.backgroundColor = color;
+      star.style.boxShadow = `0 0 ${size * 2}px ${color}`;
+      
+      starsContainer.appendChild(star);
+    }
+
+    // Cleanup function
+    return () => {
+      if (starsContainer) {
+        starsContainer.innerHTML = '';
+      }
+    };
+  }, []);
+
   return (
     <div className="main-container">
+      {/* --- Starry Background --- */}
+      <div ref={starsRef} className="stars-container"></div>
+      
       {/* --- Navbar --- */}
       <nav className="navbar">
         <h1 className="logo" onClick={() => handleNavClick('Home')}>Neon Mind</h1>
@@ -136,7 +188,7 @@ function Main() {
           <div className="testimonial-card">
             <h4>📧 Email Us</h4>
             <p>Have questions or feedback? We'd love to hear from you!</p>
-            <span>contact@neonmind.com</span>
+            <span>neonmindapp@gmail.com </span>
           </div>
           <div className="testimonial-card">
             <h4>💬 Support</h4>
