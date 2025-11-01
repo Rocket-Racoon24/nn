@@ -6,6 +6,7 @@ import Login from "./Login";
 import Main from "./main";
 import ProtectedRoute from "./ProtectedRoute";
 import ResetPassword from "./ResetPassword";
+import Quiz from "./Quiz";
 
 function App() {
   return (
@@ -19,6 +20,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz"
+          element={
+            <ProtectedRoute>
+              <Quiz />
             </ProtectedRoute>
           }
         />

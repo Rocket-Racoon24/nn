@@ -21,31 +21,91 @@ def create_details_prompt(topic_title):
     return f"""
 ### INSTRUCTIONS ###
 You are an expert tutor. Create a study guide for the topic below.
-IMPORTANT: Format your response as a valid JSON array. Each object should have "section_title" (string) and "section_items" (an array of objects with "term" and "definition").
+
+Format your response as a valid JSON array. Each object should have "section_title" (string) and "section_items" (an array of objects with "term" and "definition").
+
+IMPORTANT: The "definition" is for a side-menu. It MUST be extremely concise.
+
+- GOOD: "Core model for cloud services."
+
+- BAD: "A model for delivering computing services over the internet, allowing users to store, process, and manage data."
+
+The "definition" MUST be a 5-10 word summary. DO NOT write a full sentence.
+
 ### TASK ###
+
 Generate a JSON study guide for the topic: **"{topic_title}"**
+
 """
 
 def create_sub_details_prompt(term, context):
     return f"""
 ### INSTRUCTIONS ###
-You are a world-class expert. Provide a detailed explanation for the term below.
-IMPORTANT: Format your entire response as a single block of simple HTML. Use tags like <h3>, <p>, <ul>, <li>, and <strong>. Do not include <html> or <body> tags.
+
+You are a world-class university professor and expert. Provide a comprehensive, detailed, and in-depth explanation for the term below.
+
+Your explanation must be thorough and cover:
+
+1.  A clear, foundational definition.
+
+2.  Key components or core concepts.
+
+3.  Practical examples or analogies to help a beginner understand.
+
+4.  Its importance and applications in the context of the main topic.
+
+IMPORTANT: Format your entire response as a single block of simple HTML. Use tags like <h2>, <h3>, <p>, <ul>, <li>, and <strong>. Do not include <html> or <body> tags. Be detailed and write at length.
+
 ### CONTEXT ###
+
 The term is part of a study guide on the topic: "{context}"
+
 ### TASK ###
-Provide a deep-dive HTML explanation for the term: **"{term}"**
+
+Provide a comprehensive, deep-dive HTML explanation for the term: **"{term}"**
+
 """
 
-def create_quiz_prompt(topic):
-    return f"""
+def create_quiz_prompt(topic, num_questions, quiz_type):
+    # Calculate question distribution
+    num_mcq = 0
+    num_descriptive = 0
+    if quiz_type == "MCQ":
+        num_mcq = num_questions
+    elif quiz_type == "Descriptive":
+        num_descriptive = num_questions
+    elif quiz_type == "Both":
+        num_descriptive = int(num_questions * 0.3) # 30% descriptive
+        num_mcq = num_questions - num_descriptive
+    
+    # Build the prompt instructions
+    instructions = f"""
 ### INSTRUCTIONS ###
-You are an expert quiz designer. Create a quiz with 20 multiple-choice questions.
-Format your response as a single valid JSON object with one key: "questions".
-The value should be an array of 20 objects, each with "question", "options" (an array of 4), and "answer".
-### TASK ###
-Generate a 20-question quiz for the topic: **"{topic}"**
+
+You are an expert quiz designer. Create a quiz for the topic: "{topic}".
+
+Your response must be a single valid JSON object with one key: "questions".
+
+The value should be an array of {num_questions} objects.
+
+You must generate:
+
+- {num_mcq} Multiple Choice (MCQ) questions.
+
+- {num_descriptive} Descriptive questions.
+
+Format MCQ questions as:
+
+{{"type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "answer": "..."}}
+
+Format Descriptive questions as:
+
+{{"type": "descriptive", "question": "...", "ideal_answer": "A detailed rubric or ideal answer for grading."}}
+
+Mix the questions together in the array.
+
 """
+    return instructions
 
 # --- Routes ---
 @roadmap_bp.route("/generate_roadmap", methods=["POST"])
@@ -143,10 +203,16 @@ def generate_sub_details():
 def generate_quiz():
     data = request.get_json()
     topic = data.get('topic')
+    num_questions = data.get('num_questions', 10) 
+    quiz_type = data.get('quiz_type', 'MCQ') # Get the new quiz type
     user_email = request.user['email']
     
+    if not topic:
+        return jsonify({"error": "Missing topic"}), 400
+        
     try:
-        prompt = create_quiz_prompt(topic)
+        # Pass all three arguments to the prompt function
+        prompt = create_quiz_prompt(topic, num_questions, quiz_type)
         response_str = get_local_llm_response(prompt)
         match = re.search(r'\{.*\}', response_str, re.DOTALL)
         quiz_data = json.loads(match.group(0))
@@ -157,7 +223,7 @@ def generate_quiz():
             topic, 
             "quiz", 
             quiz_data,
-            {"generated_at": DatabaseOperations.get_current_timestamp()}
+            {"generated_at": DatabaseOperations.get_current_timestamp(), "quiz_type": quiz_type, "num_questions": num_questions}
         )
         
         return jsonify(quiz_data)
@@ -193,3 +259,49 @@ def get_notes():
     
     notes = DatabaseOperations.get_user_notes(user_email, topic, note_type)
     return jsonify({"notes": notes}), 200
+
+def create_analysis_prompt(answers_to_grade):
+    # Convert the list of answers into a string for the prompt
+    answers_str = json.dumps(answers_to_grade, indent=2)
+    return f"""
+### INSTRUCTIONS ###
+
+You are an expert Teaching Assistant. Your job is to grade a student's descriptive answers.
+
+For each question, compare the "user_answer" to the "ideal_answer" rubric.
+
+Provide a "score" (1 for a correct/good-effort answer, 0 for a wrong/missing answer) and concise "feedback".
+
+IMPORTANT: Respond ONLY with a valid JSON array of objects, one for each question.
+
+Example response: [{{"score": 1, "feedback": "Correct!"}}, {{"score": 0, "feedback": "This is incorrect..."}}]
+
+### TASK ###
+
+Grade the following answers:
+
+{answers_str}
+
+"""
+
+@roadmap_bp.route("/analyze_answers", methods=["POST"])
+@token_required
+def analyze_answers():
+    data = request.get_json()
+    answers_to_grade = data.get('answers')
+    if not answers_to_grade:
+        return jsonify({"error": "No answers provided"}), 400
+    
+    try:
+        prompt = create_analysis_prompt(answers_to_grade)
+        response_str = get_local_llm_response(prompt)
+        
+        # Find the JSON array
+        match = re.search(r'\[.*\]', response_str, re.DOTALL)
+        if not match:
+            raise Exception("No valid JSON array found in LLM response.")
+            
+        graded_results = json.loads(match.group(0))
+        return jsonify({"graded_answers": graded_results})
+    except Exception as e:
+        return jsonify({"error": f"An error occurred while analyzing answers: {str(e)}"}), 500

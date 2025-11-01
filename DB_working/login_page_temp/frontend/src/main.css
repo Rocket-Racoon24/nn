@@ -20,6 +20,53 @@ body, html, #root {
   display: flex;
   flex-direction: column;
   min-height: 100vh; /* Ensures it's at least as tall as the screen */
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* --- Starry Background --- */
+.stars-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background-color: #ffffff;
+  animation: twinkle 3s infinite ease-in-out;
+  will-change: opacity, transform;
+}
+
+/* Twinkling animation */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Faster twinkle for some stars */
+.star:nth-child(3n) {
+  animation-duration: 2s;
+}
+
+.star:nth-child(5n) {
+  animation-duration: 4s;
+}
+
+.star:nth-child(7n) {
+  animation-duration: 1.5s;
 }
 
 /* --- Neon Gradients & Glows --- */
@@ -62,6 +109,8 @@ body, html, #root {
   /* Glowing bottom border */
   border-bottom: 1px solid #00ff9c;
   box-shadow: 0 1px 20px rgba(0, 255, 156, 0.3);
+  position: relative;
+  z-index: 10;
 }
 
 .logo {
@@ -116,6 +165,8 @@ body, html, #root {
   text-align: center;
   padding: 100px 20px;
   background: transparent;
+  position: relative;
+  z-index: 10;
 }
 
 .hero h2 {
@@ -155,6 +206,8 @@ body, html, #root {
 /* --- Section Padding --- */
 .features-section, .how-it-works-section, .testimonials-section {
   padding: 40px 50px 80px 50px;
+  position: relative;
+  z-index: 10;
 }
 
 /* --- Frosted Glass Cards --- */
@@ -264,7 +317,9 @@ body, html, #root {
   box-shadow: 0 -1px 20px rgba(0, 255, 156, 0.3);
   color: #999;
   /* Pushes footer to the bottom */
-  margin-top: auto; 
+  margin-top: auto;
+  position: relative;
+  z-index: 10;
 }
 
 /* --- Responsive Design --- */
@@ -284,4 +339,3 @@ body, html, #root {
     gap: 15px;
   }
 }
-
