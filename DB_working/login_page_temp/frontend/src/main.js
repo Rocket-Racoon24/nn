@@ -47,7 +47,7 @@ function Main() {
       <nav className="navbar">
         <h1 className="logo" onClick={() => handleNavClick('Home')}>Neon Mind</h1>
         <ul className="nav-links">
-          <li onClick={() => handleNavClick('Home')}>Home</li>
+          {/* <li onClick={() => handleNavClick('Home')}>Home</li>  Home button is removed from the navbar */}
           <li onClick={() => handleNavClick('Features')}>Features</li>
           <li onClick={() => handleNavClick('About')}>About</li>
           <li onClick={() => handleNavClick('Contact')}>Contact</li>
