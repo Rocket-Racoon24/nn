@@ -50,7 +50,7 @@ function Home() {
         });
         if (res.ok) {
           const data = await res.json();
-          setUser(data.user);
+          setUser(data.user || data);
         } else {
           localStorage.removeItem("token");
           window.location.href = "/login";

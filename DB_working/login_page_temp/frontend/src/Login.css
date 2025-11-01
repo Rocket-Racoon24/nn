@@ -1,10 +1,20 @@
+/* --- Global Styles --- */
 body, html {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: #1b212a;
+  font-family: 'Segoe UI', sans-serif; /* Keep your font */
+  /* Using the richer gradient from main.css as the overall background */
+  background: linear-gradient(135deg, 
+    #0a0f0f 0%, 
+    #05080a 25%, 
+    #0a1a1f 50%, 
+    #051a1f 75%, 
+    #0a0f0f 100%);
+  background-attachment: fixed;
+  color: #D6D9D8; /* Main text color */
 }
 
+/* --- Main Background Container (Now simpler for Glassmorphism) --- */
 .bg {
   width: 100vw;
   height: 100vh;
@@ -12,348 +22,295 @@ body, html {
   align-items: center;
   justify-content: center;
   position: relative;
-  background: #1b212a;
+  background: transparent; /* Body handles the main gradient */
   overflow: hidden;
+
+  /* NEW: Add subtle, floating spherical gradients for abstract background */
+  /* Mimicking the abstract shapes in the reference image */
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px); /* Soft blur for the glowing spheres */
+    opacity: 0.6; /* Subtle glow */
+    z-index: 0;
+  }
+
+  &::before {
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, #00ff9c, #00e0ff); /* Green-cyan glow */
+    top: 10%;
+    left: 15%;
+    animation: float1 15s ease-in-out infinite alternate;
+  }
+
+  &::after {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, #00e0ff, #00ff9c); /* Cyan-green glow */
+    bottom: 10%;
+    right: 15%;
+    animation: float2 18s ease-in-out infinite alternate;
+  }
 }
 
-.animated-bg {
-  position: absolute;
-  width: 100vw;
-  height: 100vh;
-  top: 0; left: 0;
-  z-index: 0;
+@keyframes float1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, -30px) scale(1.1); }
+  100% { transform: translate(0, 0) scale(1); }
 }
 
-/* Circuit glow grid, shimmer effect */
-.animated-bg::before {
-  content: '';
-  position: absolute;
-  width: 100vw;
-  height: 100vh;
-  background: repeating-linear-gradient(
-    to right, #21ffce18 0 2px, transparent 2px 44px
-  ), repeating-linear-gradient(
-    to bottom, #21ffce14 0 2px, transparent 2px 44px
-  );
-  opacity: 0.23;
-  animation: moveBg 10s linear infinite;
+@keyframes float2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, 60px) scale(1.2); }
+  100% { transform: translate(0, 0) scale(1); }
 }
 
-@keyframes moveBg {
-  0% { background-position: 0 0, 0 0; }
-  100% { background-position: 44px 44px, 44px 88px; }
-}
 
-/* Neon animated circuit nodes */
-.circuit-node {
-  position: absolute;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #21ffce 70%, transparent 100%);
-  box-shadow:
-    0 0 32px 6px #21ffcea0,
-    0 0 12px 2px #21ffceb6;
-  opacity: 0.7;
-  animation: nodeGlow 3s infinite alternate;
-  will-change: transform, filter, opacity;
-}
-.node1 { top: 18%; left: 21%; animation: nodeGlow 3s infinite alternate, nodeDrift1 34s ease-in-out infinite; }
-.node2 { top: 68%; left: 30%; animation: nodeGlow 3s infinite alternate, nodeDrift2 42s ease-in-out infinite; animation-delay: .7s, 0s; }
-.node3 { top: 42%; left: 78%; animation: nodeGlow 3s infinite alternate, nodeDrift3 46s ease-in-out infinite; animation-delay: 1.4s, 0s; }
-.node4 { top: 74%; left: 84%; animation: nodeGlow 3s infinite alternate, nodeDrift4 40s ease-in-out infinite; animation-delay: 2.1s, 0s; }
-.node5 { top: 12%; left: 58%; animation: nodeGlow 3s infinite alternate, nodeDrift5 36s ease-in-out infinite; animation-delay: 0.3s, 0s; }
-.node6 { top: 35%; left: 15%; animation: nodeGlow 3s infinite alternate, nodeDrift6 44s ease-in-out infinite; animation-delay: 1.0s, 0s; }
-.node7 { top: 58%; left: 65%; animation: nodeGlow 3s infinite alternate, nodeDrift7 38s ease-in-out infinite; animation-delay: 1.7s, 0s; }
-.node8 { top: 82%; left: 45%; animation: nodeGlow 3s infinite alternate, nodeDrift8 48s ease-in-out infinite; animation-delay: 2.4s, 0s; }
-.node9 { top: 25%; left: 52%; animation: nodeGlow 3s infinite alternate, nodeDrift9 35s ease-in-out infinite; animation-delay: 0.5s, 0s; }
-.node10 { top: 48%; left: 35%; animation: nodeGlow 3s infinite alternate, nodeDrift10 39s ease-in-out infinite; animation-delay: 1.2s, 0s; }
-.node11 { top: 72%; left: 72%; animation: nodeGlow 3s infinite alternate, nodeDrift11 45s ease-in-out infinite; animation-delay: 1.9s, 0s; }
-.node12 { top: 8%; left: 88%; animation: nodeGlow 3s infinite alternate, nodeDrift12 41s ease-in-out infinite; animation-delay: 0.2s, 0s; }
-.node13 { top: 16%; left: 66%; animation: nodeGlow 3s infinite alternate, nodeDrift13 37s ease-in-out infinite; animation-delay: 0.6s, 0s; }
-.node14 { top: 30%; left: 88%; animation: nodeGlow 3s infinite alternate, nodeDrift14 43s ease-in-out infinite; animation-delay: 1.1s, 0s; }
-.node15 { top: 54%; left: 82%; animation: nodeGlow 3s infinite alternate, nodeDrift15 47s ease-in-out infinite; animation-delay: 1.6s, 0s; }
-.node16 { top: 78%; left: 58%; animation: nodeGlow 3s infinite alternate, nodeDrift16 33s ease-in-out infinite; animation-delay: 2.1s, 0s; }
-.node17 { top: 12%; left: 36%; animation: nodeGlow 3s infinite alternate, nodeDrift17 44s ease-in-out infinite; animation-delay: 0.4s, 0s; }
-.node18 { top: 38%; left: 92%; animation: nodeGlow 3s infinite alternate, nodeDrift18 36s ease-in-out infinite; animation-delay: 0.9s, 0s; }
-.node19 { top: 64%; left: 20%; animation: nodeGlow 3s infinite alternate, nodeDrift19 40s ease-in-out infinite; animation-delay: 1.4s, 0s; }
-.node20 { top: 86%; left: 12%; animation: nodeGlow 3s infinite alternate, nodeDrift20 42s ease-in-out infinite; animation-delay: 1.8s, 0s; }
-.node21 { top: 6%; left: 12%; animation: nodeGlow 3s infinite alternate, nodeDrift21 46s ease-in-out infinite; animation-delay: 0.7s, 0s; }
-.node22 { top: 22%; left: 8%; animation: nodeGlow 3s infinite alternate, nodeDrift22 34s ease-in-out infinite; animation-delay: 1.3s, 0s; }
-.node23 { top: 46%; left: 8%; animation: nodeGlow 3s infinite alternate, nodeDrift23 48s ease-in-out infinite; animation-delay: 1.9s, 0s; }
-.node24 { top: 68%; left: 8%; animation: nodeGlow 3s infinite alternate, nodeDrift24 39s ease-in-out infinite; animation-delay: 2.5s, 0s; }
-.node25 { top: 90%; left: 32%; animation: nodeGlow 3s infinite alternate, nodeDrift25 37s ease-in-out infinite; animation-delay: 2.9s, 0s; }
-.node26 { top: 84%; left: 88%; animation: nodeGlow 3s infinite alternate, nodeDrift26 41s ease-in-out infinite; animation-delay: 2.2s, 0s; }
-.node27 { top: 58%; left: 92%; animation: nodeGlow 3s infinite alternate, nodeDrift27 45s ease-in-out infinite; animation-delay: 1.5s, 0s; }
-.node28 { top: 36%; left: 72%; animation: nodeGlow 3s infinite alternate, nodeDrift28 33s ease-in-out infinite; animation-delay: 0.8s, 0s; }
-.node29 { top: 14%; left: 78%; animation: nodeGlow 3s infinite alternate, nodeDrift29 44s ease-in-out infinite; animation-delay: 0.3s, 0s; }
-.node30 { top: 50%; left: 58%; animation: nodeGlow 3s infinite alternate, nodeDrift30 38s ease-in-out infinite; animation-delay: 1.0s, 0s; }
-.node31 { top: 28%; left: 42%; animation: nodeGlow 3s infinite alternate, nodeDrift31 36s ease-in-out infinite; animation-delay: 1.7s, 0s; }
-.node32 { top: 72%; left: 48%; animation: nodeGlow 3s infinite alternate, nodeDrift32 42s ease-in-out infinite; animation-delay: 2.4s, 0s; }
 
-@keyframes nodeGlow {
-  0% { filter: blur(0px); opacity: .68;}
-  100% { filter: blur(2px); opacity: .84;}
-}
 
-/* Slow drifting motion for nodes - multiple patterns for different directions */
-@keyframes nodeDrift1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(36px, 24px); } }
-@keyframes nodeDrift2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-28px, 18px); } }
-@keyframes nodeDrift3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -26px); } }
-@keyframes nodeDrift4 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-22px, -18px); } }
-@keyframes nodeDrift5 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(26px, 22px); } }
-@keyframes nodeDrift6 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(32px, -20px); } }
-@keyframes nodeDrift7 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-30px, 26px); } }
-@keyframes nodeDrift8 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(24px, -24px); } }
-@keyframes nodeDrift9 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(22px, 20px); } }
-@keyframes nodeDrift10 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-26px, 18px); } }
-@keyframes nodeDrift11 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(28px, -22px); } }
-@keyframes nodeDrift12 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-24px, -20px); } }
-@keyframes nodeDrift13 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(34px, 16px); } }
-@keyframes nodeDrift14 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-22px, 24px); } }
-@keyframes nodeDrift15 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(26px, -26px); } }
-@keyframes nodeDrift16 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-20px, 18px); } }
-@keyframes nodeDrift17 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(24px, 20px); } }
-@keyframes nodeDrift18 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-28px, -18px); } }
-@keyframes nodeDrift19 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -16px); } }
-@keyframes nodeDrift20 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(18px, -18px); } }
-@keyframes nodeDrift21 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(22px, 22px); } }
-@keyframes nodeDrift22 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(20px, 24px); } }
-@keyframes nodeDrift23 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(26px, 20px); } }
-@keyframes nodeDrift24 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(24px, -22px); } }
-@keyframes nodeDrift25 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-22px, 18px); } }
-@keyframes nodeDrift26 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-28px, 16px); } }
-@keyframes nodeDrift27 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-24px, -24px); } }
-@keyframes nodeDrift28 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(28px, -18px); } }
-@keyframes nodeDrift29 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, 24px); } }
-@keyframes nodeDrift30 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 28px); } }
-@keyframes nodeDrift31 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(22px, -20px); } }
-@keyframes nodeDrift32 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-26px, 22px); } }
 
+/* --- Glassmorphism Login Card --- */
+/* --- Glassmorphism Login Card --- */
 .login-container {
-  background: rgba(35,43,54,0.71);
-  padding: 32px 32px 20px 32px;
-  border-radius: 18px;
-  box-shadow: 0 0 48px 6px #21ffce29;
-  min-width: 320px;
-  width: 520px; /* container width */
-  max-width: 96vw; /* keep responsive on small screens */
-  position: relative;
-  z-index: 1;
+  /* STYLE UPDATE: Change 'align-items' from 'center' to 'stretch' */
+  align-items: stretch; 
+  
+  /* All other lines stay the same... */
+  background: rgba(255, 255, 255, 0.1); 
+  backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  padding: 40px;
+  min-width: 380px;
+  max-width: 480px;
+  width: 90vw;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  backdrop-filter: blur(12px) saturate(1.12);
+  position: relative;
+  z-index: 1;
   animation: fadeInScale 1.2s cubic-bezier(.36,.23,.21,.85);
-  border: 1px solid #18e5acee;
 }
 
-/* Compact layout tweaks for signup (register) to reduce height */
+/* Compact layout (keep if needed, adjust values) */
 .login-container.signup-compact {
-  padding: 24px 28px 16px 28px;
+  padding: 30px;
 }
 .login-container.signup-compact .subtitle {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 .login-container.signup-compact .input {
-  margin-bottom: 12px;
+  margin-bottom: 15px;
 }
 .login-container.signup-compact .hint {
-  height: 16px;
-  line-height: 16px;
-  margin-bottom: 6px;
-}
-
-.glass {
-  background: linear-gradient(120deg, rgba(35,43,54,0.81) 58%, rgba(33,255,206,0.12) 101%);
+  height: 18px;
+  line-height: 18px;
+  margin-bottom: 8px;
 }
 
 @keyframes fadeInScale {
-  0% { opacity: 0; transform: scale(0.77);}
-  60% { opacity: .7; transform: scale(1.12);}
-  100% { opacity: 1; transform: scale(1);}
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
+/* --- Title and Subtitle --- */
 .neon-title {
-  font-size: 2.23rem;
-  font-family: 'Segoe UI', sans-serif;
+  font-size: 2.5rem; /* Larger title */
   font-weight: 700;
-  color: #21ffce;
-  margin-bottom: 10px;
-  text-shadow:
-    0 0 28px #21ffcec5,
-    0 0 88px #21ffce9b,
-    0 0 8px #21ffce;
-  letter-spacing: 1.5px;
+  margin-bottom: 8px; /* Closer to subtitle */
+  letter-spacing: 1px;
   text-align: center;
-  animation: neonPulseSexy 2.8s infinite alternate;
-  position: relative;
-  overflow: visible;
-}
 
-/* Remove sliding shine overlay on NeonMind title */
-.shine::after {
-  content: none !important;
-}
-
-@keyframes neonPulseSexy {
-  0%, 100% {text-shadow: 0 0 28px #21ffcec5, 0 0 88px #21ffce9b, 0 0 8px #21ffce;}
-  73% {text-shadow: 0 0 52px #21ffcef7, 0 0 96px #21ffcebf, 0 0 18px #21ffce;}
-}
-
-@keyframes shineSweep {
-  0% { left: -30%; opacity: .71; }
-  50% { left: 48%; opacity: 1;}
-  100% { left: 130%; opacity: .35;}
+  /* Keep your green-cyan gradient for the title */
+  background: linear-gradient(90deg, #00ff9c, #00e0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Keep subtle glow for the title */
+  filter: 
+    drop-shadow(0 0 2px rgba(0, 255, 156, 0.8))
+    drop-shadow(0 0 8px rgba(0, 255, 156, 0.4))
+    drop-shadow(0 0 15px rgba(0, 224, 255, 0.3));
 }
 
 .welcome {
-  color: white;
-  font-size: 1.33rem;
-  margin: 6px 0 7px 0;
-  font-weight: 540;
-  text-align: center;
-  opacity: .97;
-  animation: fadeInRight 1.18s .22s backwards;
-  text-shadow: 0 0 8px #21ffce18;
+  display: none; /* Hide 'welcome' text as per reference image */
 }
 
 .subtitle {
-  color: #b1b8c6;
-  font-size: 1.04rem;
-  margin-bottom: 24px;
+  color: rgba(255, 255, 255, 0.75); /* Lighter text for glass */
+  font-size: 1.05rem; /* Slightly larger */
+  font-weight: 400; /* Regular weight */
+  margin-bottom: 30px; /* More space below subtitle */
   text-align: center;
-  opacity: .85;
+  opacity: 1;
   animation: fadeInRight 1.14s .24s backwards;
+  text-shadow: none; /* Remove subtle text shadow */
 }
 
-@keyframes fadeInRight {
-  0% { opacity: 0; transform: translateX(22px);}
-  100% { opacity: 1; transform: none;}
+/* --- Input Fields (Glassmorphism style) --- */
+.input-group {
+  position: relative;
+  width: 100%;
+  margin-bottom: 20px; /* Spacing between input groups */
 }
 
 .input {
+  /* STYLE UPDATE: Add this line */
+  box-sizing: border-box; 
+
+  /* All other lines stay the same... */
   width: 100%;
-  padding: 13px;
-  margin-bottom: 15px;
-  background: #1b212a;
-  border: none;
-  border-radius: 8px;
-  color: #f2f2f2;
-  font-size: 1.02rem;
+  padding: 14px 14px 14px 45px; 
+  background: rgba(255, 255, 255, 0.15); 
+  border: 1px solid rgba(255, 255, 255, 0.3); 
+  border-radius: 12px; 
+  color: #D6D9D8;
+  font-size: 1.05rem;
   outline: none;
-  box-shadow: 0 2px 11px 1px #21ffce26 inset;
-  transition: box-shadow .3s, background .18s, color .14s;
-  position: relative;
-  z-index: 2;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+  transition: all 0.3s ease;
 }
 
 .input::placeholder {
-  color: #6ffeecab;
+  color: rgba(255, 255, 255, 0.5); /* Lighter placeholder */
   opacity: 1;
-  letter-spacing: .5px;
-  font-size: 1.02rem;
-  transition: color .19s;
+  font-size: 1rem;
 }
 
-.input.focus {
-  background: #25353b;
-  box-shadow: 0 0 26px 5px #21ffce61, 0 8px 18px 0 #21ffce22 inset;
-  color: #21ffce;
-  animation: fieldGlow2 .64s;
+.input:focus {
+  background: rgba(255, 255, 255, 0.25); /* Slightly less translucent on focus */
+  border-color: rgba(0, 255, 156, 0.6); /* Green highlight on focus */
+  box-shadow: 0 0 0 2px rgba(0, 255, 156, 0.3), 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle glow + deeper shadow */
+  color: #D6D9D8;
 }
 
-@keyframes fieldGlow2 {
-  0% { box-shadow: 0 0 2px 0 #21ffcec2;}
-  100% { box-shadow: 0 0 26px 5px #21ffce61;}
+/* NEW: Input icons */
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.6); /* Icon color */
+  font-size: 1.2rem;
+  pointer-events: none; /* Ensure icon doesn't block clicks */
 }
 
+/* --- Remember Me / Forgot Password Layout --- */
+.options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 30px; /* Spacing before button */
+  font-size: 0.95rem;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.remember-me input[type="checkbox"] {
+  /* Basic checkbox styling, you might want a custom checkbox for exact match */
+  margin-right: 8px;
+  width: 18px;
+  height: 18px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  appearance: none; /* Hide default checkbox */
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.remember-me input[type="checkbox"]:checked {
+  background-color: #00ff9c; /* Green when checked */
+  border-color: #00ff9c;
+}
+
+.remember-me input[type="checkbox"]:checked::after {
+  content: '✓'; /* Checkmark symbol */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #05080a; /* Dark text on green background */
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.forgot-password {
+  color: rgba(0, 224, 255, 0.8); /* Cyan link color */
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s, text-shadow 0.2s;
+}
+
+.forgot-password:hover {
+  color: #00e0ff; /* Brighter cyan on hover */
+  text-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
+}
+
+/* --- Login Button (Glassmorphism style) --- */
 .login-btn {
   width: 100%;
-  padding: 15px;
-  background: #20ffb5;
-  color: #232b36;
-  font-size: 1.13rem;
-  font-weight: 720;
+  padding: 16px; /* Larger padding */
+  
+  /* NEW: Gradient from reference image style, adapted to your colors */
+  background: linear-gradient(90deg, rgba(0, 255, 156, 0.7), rgba(0, 224, 255, 0.7));
+  color: #05080a; /* Dark text on vibrant button */
+  font-size: 1.15rem; /* Larger font */
+  font-weight: 600;
   border: none;
-  border-radius: 9px;
+  border-radius: 12px; /* Matches input fields */
   cursor: pointer;
-  box-shadow:
-    0 0 68px 6px #21ffce57,
-    0 0 8px 0px #21ffce28;
-  transition: background .19s, box-shadow .16s, color .13s;
-  margin-top: 5px;
-  margin-bottom: 14px;
-  position: relative;
-  overflow: hidden;
+  /* NEW: Subtle glow for the button */
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2), 0 0 15px rgba(0, 255, 156, 0.3);
+  transition: all 0.3s ease-in-out;
+  margin-top: 5px; /* Adjusted spacing */
 }
 
-.neon-btn {
-  border: 2px solid #21ffce68;
-  box-sizing: border-box;
+.login-btn:hover, .login-btn:focus {
+  /* NEW: Enhance glow on hover */
+  background: linear-gradient(90deg, #00ff9c, #00e0ff); /* Full opacity gradient */
+  color: #05080a;
+  transform: translateY(-2px); /* Slight lift effect */
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(0, 255, 156, 0.6),
+    0 0 40px rgba(0, 224, 255, 0.4);
 }
 
-.neon-btn::after {
-  content: '';
-  display: block;
-  position: absolute;
-  left: -40%; top: 0;
-  height: 100%; width: 60%;
-  background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.13) 54%, transparent 100%);
-  opacity: .33;
-  pointer-events: none;
-  transition: left .4s;
-}
-
-.neon-btn:hover, .neon-btn:focus {
-  background: #1be693;
-  color: #17212b;
-  box-shadow: 0 0 88px 11px #21ffceed, 0 0 18px 2px #21ffce84;
-}
-.neon-btn:hover::after {
-  left: 48%;
-  opacity: .67;
-}
-
+/* --- Signup Link Styling --- */
 .signup {
-  color: #b1b8c6;
-  margin-top: 8px;
-  font-size: 1.04rem;
+  color: rgba(255, 255, 255, 0.7); /* Lighter text for glass */
+  margin-top: 25px; /* More space above */
+  font-size: 0.95rem;
   text-align: center;
-  letter-spacing: .2px;
 }
 
 .signup-link {
-  color: #21ffce;
+  color: #00ff9c; /* Green link color */
   cursor: pointer;
-  font-weight: 510;
-  margin-left: 4px;
-  text-decoration: underline;
-  transition: color .17s, text-shadow .17s;
-  text-shadow: 0 0 19px #21ffce5c;
+  font-weight: 600; /* Bolder for emphasis */
+  margin-left: 5px;
+  text-decoration: none; /* Remove default underline */
+  transition: color 0.2s, text-shadow 0.2s;
+  text-shadow: 0 0 10px rgba(0, 255, 156, 0.4); /* Subtle glow */
 }
 
 .signup-link:hover {
-  color: #1be693;
-  text-shadow: 0 0 32px #21ffceab, 0 0 11px #21ffce90;
-  animation: jumpGlow .7s;
+  color: #00e0ff; /* Cyan on hover */
+  text-shadow: 0 0 20px rgba(0, 224, 255, 0.7), 0 0 8px rgba(0, 224, 255, 0.5);
 }
 
-.pulse {
-  animation: pulseGlow 1.5s infinite alternate;
-}
-
-@keyframes pulseGlow {
-  0% { text-shadow: 0 0 14px #21ffce77;}
-  100% { text-shadow: 0 0 36px #21ffcebc;}
-}
-
-@keyframes jumpGlow {
-  0% { transform: scale(1);}
-  40% { transform: scale(1.11);}
-  100% { transform: scale(1);}
-}
-
-/* Reserved space for inline validation errors to avoid layout shift */
+/* --- Validation Hint Styling (Unchanged, adjust colors if needed) --- */
 .field {
   width: 100%;
 }
@@ -362,12 +319,13 @@ body, html {
 }
 .hint {
   height: 18px;
-  margin-top: -8px;
+  margin-top: -15px; /* Adjust margin due to new input spacing */
   margin-bottom: 10px;
-  font-size: .92rem;
-  color: #ff6b6b;
+  font-size: .85rem; /* Slightly smaller for subtle hint */
+  color: #ff8b8b; /* Reddish error color */
   line-height: 18px;
   visibility: hidden;
+  text-align: left; /* Align hint to left */
 }
 .hint.visible {
   visibility: visible;

@@ -1,3 +1,9 @@
+/* **IMPORTANT:** For the new icons to work, add this line 
+  to the <head> section of your public/index.html file:
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+*/
+
 import "./Login.css";
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
@@ -159,44 +165,11 @@ const Login = () => {
 
   return (
     <div className="bg">
-      <div className="animated-bg">
-        <div className="circuit-node node1"></div>
-        <div className="circuit-node node2"></div>
-        <div className="circuit-node node3"></div>
-        <div className="circuit-node node4"></div>
-        <div className="circuit-node node5"></div>
-        <div className="circuit-node node6"></div>
-        <div className="circuit-node node7"></div>
-        <div className="circuit-node node8"></div>
-        <div className="circuit-node node9"></div>
-        <div className="circuit-node node10"></div>
-        <div className="circuit-node node11"></div>
-        <div className="circuit-node node12"></div>
-        <div className="circuit-node node13"></div>
-        <div className="circuit-node node14"></div>
-        <div className="circuit-node node15"></div>
-        <div className="circuit-node node16"></div>
-        <div className="circuit-node node17"></div>
-        <div className="circuit-node node18"></div>
-        <div className="circuit-node node19"></div>
-        <div className="circuit-node node20"></div>
-        <div className="circuit-node node21"></div>
-        <div className="circuit-node node22"></div>
-        <div className="circuit-node node23"></div>
-        <div className="circuit-node node24"></div>
-        <div className="circuit-node node25"></div>
-        <div className="circuit-node node26"></div>
-        <div className="circuit-node node27"></div>
-        <div className="circuit-node node28"></div>
-        <div className="circuit-node node29"></div>
-        <div className="circuit-node node30"></div>
-        <div className="circuit-node node31"></div>
-        <div className="circuit-node node32"></div>
-      </div>
+      {/* The animated-bg div is now hidden by CSS, but no harm leaving it */}
+      <div className="animated-bg"></div>
 
       <div className={`login-container glass${!isLogin ? " signup-compact" : ""}`}>
-        <h1 className="neon-title shine">NEONMIND</h1>
-        <h2 className="welcome">{isLogin ? "Welcome Back" : "Create Account"}</h2>
+        <h1 className="neon-title">NEONMIND</h1>
         <p className="subtitle">
           {isLogin ? "Login to continue your journey" : "Sign up and join the NEONMIND experience"}
         </p>
@@ -204,7 +177,9 @@ const Login = () => {
         <form className="form" onSubmit={handleLogin}>
           {isAwaitingOtp ? (
             <>
-              <div className="field">
+              {/* Using input-group for OTP field as well */}
+              <div className="input-group">
+                <i className="input-icon fas fa-key"></i>
                 <input
                   type="text"
                   placeholder="Enter OTP sent to your email"
@@ -216,10 +191,10 @@ const Login = () => {
                   required
                 />
               </div>
-              <button type="button" className="login-btn neon-btn" onClick={handleVerifyOtp}>
+              <button type="button" className="login-btn" onClick={handleVerifyOtp}>
                 <span>Verify OTP</span>
               </button>
-              <div style={{ textAlign: 'center', marginTop: 6 }}>
+              <div style={{ textAlign: 'center', marginTop: 15, marginBottom: 15 }}>
                 <button
                   type="button"
                   onClick={handleResendOtp}
@@ -238,82 +213,104 @@ const Login = () => {
             </>
           ) : (
             <>
-          {!isLogin && (
-            <input
-              type="text"
-              placeholder="Full Name"
-              className={`input${focusField === "name" ? " focus" : ""}`}
-              onFocus={() => setFocusField("name")}
-              onBlur={() => setFocusField(null)}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          )}
+              {!isLogin && (
+                // Full Name Input
+                <div className="input-group">
+                  <i className="input-icon fas fa-user"></i>
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    className={`input${focusField === "name" ? " focus" : ""}`}
+                    onFocus={() => setFocusField("name")}
+                    onBlur={() => setFocusField(null)}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                  {/* Assuming no hint needed for name, but you could add one */}
+                  <div className="hint"></div> 
+                </div>
+              )}
 
-          <div className="field">
-            <input
-              type="email"
-              placeholder="Email Address"
-              className={`input${focusField === "email" ? " focus" : ""}`}
-              onFocus={() => setFocusField("email")}
-              onBlur={() => setFocusField(null)}
-              value={email}
-              onChange={handleEmailChange}
-              required
-            />
-            <div className={`hint${emailError ? " visible" : ""}`}>{emailError || ""}</div>
-          </div>
+              {/* Email Input */}
+              <div className="input-group">
+                <i className="input-icon fas fa-envelope"></i>
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  className={`input${focusField === "email" ? " focus" : ""}`}
+                  onFocus={() => setFocusField("email")}
+                  onBlur={() => setFocusField(null)}
+                  value={email}
+                  onChange={handleEmailChange}
+                  required
+                />
+                <div className={`hint${emailError ? " visible" : ""}`}>{emailError || ""}</div>
+              </div>
 
-          <div className="field">
-            <input
-              type="password"
-              placeholder="Password"
-              className={`input${focusField === "password" ? " focus" : ""}`}
-              onFocus={() => setFocusField("password")}
-              onBlur={() => setFocusField(null)}
-              onChange={(e) => {
-                const value = e.target.value;
-                setPassword(value);
-                if (!isLogin && confirmPassword && value !== confirmPassword) {
-                  setPasswordError("Passwords do not match.");
-                } else {
-                  setPasswordError("");
-                }
-              }}
-              required
-            />
-            <div className={`hint${!isLogin && passwordError ? " visible" : ""}`}>{!isLogin && passwordError ? passwordError : ""}</div>
-          </div>
+              {/* Password Input */}
+              <div className="input-group">
+                <i className="input-icon fas fa-lock"></i>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className={`input${focusField === "password" ? " focus" : ""}`}
+                  onFocus={() => setFocusField("password")}
+                  onBlur={() => setFocusField(null)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPassword(value);
+                    if (!isLogin && confirmPassword && value !== confirmPassword) {
+                      setPasswordError("Passwords do not match.");
+                    } else {
+                      setPasswordError("");
+                    }
+                  }}
+                  required
+                />
+                <div className={`hint${!isLogin && passwordError ? " visible" : ""}`}>{!isLogin && passwordError ? passwordError : ""}</div>
+              </div>
 
-          {!isLogin && (
-            <div className="field">
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                className={`input${focusField === "confirm" ? " focus" : ""}`}
-                onFocus={() => setFocusField("confirm")}
-                onBlur={() => setFocusField(null)}
-                onChange={handleConfirmPasswordChange}
-                required
-              />
-              <div className={`hint${passwordError ? " visible" : ""}`}>{passwordError || ""}</div>
-            </div>
-          )}
+              {!isLogin && (
+                // Confirm Password Input
+                <div className="input-group">
+                  <i className="input-icon fas fa-lock"></i>
+                  <input
+                    type="password"
+                    placeholder="Confirm Password"
+                    className={`input${focusField === "confirm" ? " focus" : ""}`}
+                    onFocus={() => setFocusField("confirm")}
+                    onBlur={() => setFocusField(null)}
+                    onChange={handleConfirmPasswordChange}
+                    required
+                  />
+                  <div className={`hint${passwordError ? " visible" : ""}`}>{passwordError || ""}</div>
+                </div>
+              )}
 
-          <button className="login-btn neon-btn" type="submit" disabled={!isLogin && (emailError || passwordError)}>
-            <span>{isLogin ? "Login" : "Sign Up"}</span>
-          </button>
-          {isLogin && (
-            <div style={{ textAlign: 'center', marginTop: 6 }}>
-              <span className="signup-link" onClick={handleForgotPassword}>Forgot password?</span>
-            </div>
-          )}
+              {/* NEW: Options Row (Remember/Forgot) */}
+              {isLogin && (
+                <div className="options-row">
+                  <label className="remember-me">
+                    <input type="checkbox" />
+                    Remember me
+                  </label>
+                  <span className="forgot-password" onClick={handleForgotPassword}>
+                    Forgot password?
+                  </span>
+                </div>
+              )}
+
+              <button className="login-btn" type="submit" disabled={!isLogin && (emailError || passwordError)}>
+                <span>{isLogin ? "Login" : "Sign Up"}</span>
+              </button>
+              
+              {/* OLD Forgot Password removed - it's now in the options-row */}
             </>
           )}
         </form>
 
         <div className="signup">
-          {isLogin ? "Don't have an account?" : "Already have an account?"} <span className="signup-link pulse" onClick={() => { setIsLogin(!isLogin); setEmailError(""); setPasswordError(""); }}>{isLogin ? "Sign Up" : "Login"}</span>
+          {isLogin ? "Don't have an account?" : "Already have an account?"} <span className="signup-link" onClick={() => { setIsLogin(!isLogin); setEmailError(""); setPasswordError(""); }}>{isLogin ? "Sign Up" : "Login"}</span>
         </div>
       </div>
     </div>
