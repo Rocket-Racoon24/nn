@@ -1,4 +1,4 @@
-// src/Home.js (Refactored)
+
 import React, { useState, useEffect } from "react";
 import RoadmapGenerator from './RoadmapGenerator';
 import InteractiveRoadmap from './InteractiveRoadmap';
