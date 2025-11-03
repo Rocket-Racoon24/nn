@@ -153,17 +153,25 @@ export function Profile({ onBack, topics, user }) {
   };
 
 
-  // Calculate topic progress
-  const topicProgress = topics.map((topic) => {
-    const topicSessions = studySessions.filter((s) => s.topic.includes(topic)); // Use .includes() for dynamic mapping
-    const totalTime = topicSessions.reduce((acc, s) => acc + s.duration, 0);
-    return {
-      topic,
-      totalTime,
-      sessions: topicSessions.length,
-      targetTime: 300, // 5 hours target
+  // Topic progress based on quizzes (MCQ + Descriptive); fetched from backend
+  const [topicProgress, setTopicProgress] = useState([]);
+  React.useEffect(() => {
+    const fetchTopicProgress = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await fetch("http://localhost:5000/get_topic_progress", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.topic_progress)) {
+          setTopicProgress(data.topic_progress);
+        }
+      } catch (_) { /* silent */ }
     };
-  });
+    fetchTopicProgress();
+  }, []);
 
   const formatTime = (minutes) => {
     if (minutes < 0) return '0m';
@@ -358,27 +366,30 @@ export function Profile({ onBack, topics, user }) {
         </div>
       </div>
 
-      {/* Topic Progress */}
+      {/* Topic Progress (based on mandatory quizzes passed) */}
       <div style={{ ...mockStyle.card, marginTop: '24px', backgroundColor: '#1e293b' }}>
         <h3 style={{ color: 'white', marginBottom: '16px' }}>Progress by Topic</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {topicProgress.map((tp) => (
-            <div key={tp.topic} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'white' }}>{tp.topic}</span>
-                <span style={{ fontSize: '14px', color: '#94a3b8' }}>
-                  {formatTime(tp.totalTime)} / {formatTime(tp.targetTime)}
-                </span>
+          {(topicProgress.length ? topicProgress : topics.map(t => ({ topic: t, progressPercent: 0, quizzesPassed: 0, quizzesRequired: 0 })) ).map((tp) => {
+            const percent = Math.max(0, Math.min(100, Math.round(tp.progressPercent || 0)));
+            return (
+              <div key={tp.topic} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'white' }}>{tp.topic}</span>
+                  <span style={{ fontSize: '14px', color: '#94a3b8' }}>{percent}%</span>
+                </div>
+                <div style={mockStyle.progressContainer}>
+                  <div style={{ ...mockStyle.progressFill, width: `${percent}%` }}></div>
+                </div>
+                {typeof tp.quizzesPassed === 'number' && typeof tp.quizzesRequired === 'number' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                    <span>{tp.quizzesPassed}/{tp.quizzesRequired} quizzes</span>
+                    <span>{percent}% complete</span>
+                  </div>
+                )}
               </div>
-              <div style={mockStyle.progressContainer}>
-                <div style={{ ...mockStyle.progressFill, width: `${Math.min((tp.totalTime / tp.targetTime) * 100, 100)}%` }}></div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
-                <span>{tp.sessions} sessions</span>
-                <span>{Math.round((tp.totalTime / tp.targetTime) * 100)}% complete</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
