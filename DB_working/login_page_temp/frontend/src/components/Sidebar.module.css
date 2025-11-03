@@ -125,3 +125,46 @@
   color: #000;
   box-shadow: 0 0 10px rgba(0, 255, 156, 0.18);
 }
+
+.project-menu-btn {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  background: transparent;
+  border: none;
+  color: #00ff9c;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.project-menu {
+  position: absolute;
+  right: -110px; /* place to the right of the ⋯ button */
+  top: 4px;
+  background: rgba(14, 25, 27, 0.95);
+  border: 1px solid rgba(0, 255, 156, 0.2);
+  border-radius: 6px;
+  padding: 6px;
+  z-index: 5;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+
+.project-delete {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-delete:hover {
+  background: #dc2626;
+}
+
+.trash-icon {
+  display: inline-block;
+  line-height: 1;
+}

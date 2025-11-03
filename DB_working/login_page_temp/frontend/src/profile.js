@@ -232,33 +232,33 @@ export function Profile({ onBack, topics, user }) {
 
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px', color: 'white', backgroundColor: '#0f172a' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px', color: '#e5fff3', backgroundColor: '#0b1213' }}>
       <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ color: 'white' }}>Profile & Progress</h2>
-        <button onClick={onBack} style={{ ...mockStyle.button, backgroundColor: '#334155', color: 'white', border: '1px solid #64748b' }}>
+        <h2 style={{ color: '#00ff9c', textShadow: '0 0 8px rgba(0,255,156,0.3)' }}>Profile & Progress</h2>
+        <button onClick={onBack} style={{ ...mockStyle.button, backgroundColor: 'transparent', color: '#00ff9c', border: '1px solid rgba(0,255,156,0.4)' }}>
           ← Back to Dashboard
         </button>
       </div>
 
-      {/* --- NEW PROFILE CARD BOX (White/Light Styles) --- */}
+      {/* --- Profile Summary (Dark Neon) --- */}
       <div style={{ 
-        backgroundColor: 'white', 
+        backgroundColor: 'rgba(14,25,27,0.6)', 
         padding: '24px', 
         borderRadius: '12px', 
         marginBottom: '32px', 
-        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-        color: '#0f172a' // Dark text for light background
+        border: '1px solid rgba(0,255,156,0.2)',
+        boxShadow: '0 0 15px rgba(0, 255, 156, 0.1)'
       }}>
-          <h3 style={{ color: '#38bdf8', margin: '0 0 16px 0', fontSize: '24px' }}>{user?.name || 'User Profile'}</h3>
+          <h3 style={{ color: '#00ff9c', margin: '0 0 16px 0', fontSize: '22px', textShadow: '0 0 8px rgba(0,255,156,0.35)' }}>{user?.name || 'User Profile'}</h3>
           <div style={{ display: 'flex', gap: '40px', fontSize: '16px' }}>
-              <p style={{ color: '#64748b', margin: 0 }}>
-                  Email: <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{user?.email || 'N/A'}</span>
+              <p style={{ color: '#a9ffdf', margin: 0 }}>
+                  Email: <span style={{ color: '#e5fff3', fontWeight: 'bold' }}>{user?.email || 'N/A'}</span>
               </p>
-              <p style={{ color: '#64748b', margin: 0 }}>
-                  Total Projects: <span style={{ color: '#34d399', fontWeight: 'bold' }}>{totalSessions}</span>
+              <p style={{ color: '#a9ffdf', margin: 0 }}>
+                  Total Projects: <span style={{ color: '#00ff9c', fontWeight: 'bold' }}>{totalSessions}</span>
               </p>
-              <p style={{ color: '#64748b', margin: 0 }}>
-                  Total Time Logged: <span style={{ color: '#a78bfa', fontWeight: 'bold' }}>{formatTime(totalStudyTime)}</span>
+              <p style={{ color: '#a9ffdf', margin: 0 }}>
+                  Total Time Logged: <span style={{ color: '#7cf9ff', fontWeight: 'bold' }}>{formatTime(totalStudyTime)}</span>
               </p>
           </div>
       </div>
@@ -266,123 +266,58 @@ export function Profile({ onBack, topics, user }) {
 
       {/* Statistics Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-        <div style={{...mockStyle.card, backgroundColor: '#1e293b'}}>
+        <div style={{...mockStyle.card, backgroundColor: 'rgba(14,25,27,0.6)', border: '1px solid rgba(0,255,156,0.2)'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <div style={mockStyle.iconWrapper('#38bdf8')}><Icon name="Clock" color="#38bdf8" /></div>
-            <span style={{ fontSize: '14px', color: '#94a3b8' }}>Total Study Time</span>
+            <div style={mockStyle.iconWrapper('#00ff9c')}><Icon name="Clock" color="#00ff9c" /></div>
+            <span style={{ fontSize: '14px', color: '#a9ffdf' }}>Total Study Time</span>
           </div>
-          <p style={{ color: 'white', marginTop: '8px' }}>{formatTime(totalStudyTime)}</p>
+          <p style={{ color: '#e5fff3', marginTop: '8px' }}>{formatTime(totalStudyTime)}</p>
         </div>
 
-        <div style={{...mockStyle.card, backgroundColor: '#1e293b'}}>
+        <div style={{...mockStyle.card, backgroundColor: 'rgba(14,25,27,0.6)', border: '1px solid rgba(0,255,156,0.2)'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <div style={mockStyle.iconWrapper('#34d399')}><Icon name="Calendar" color="#34d399" /></div>
-            <span style={{ fontSize: '14px', color: '#94a3b8' }}>Study Streak</span>
+            <div style={mockStyle.iconWrapper('#00ff9c')}><Icon name="Calendar" color="#00ff9c" /></div>
+            <span style={{ fontSize: '14px', color: '#a9ffdf' }}>Study Streak</span>
           </div>
-          <p style={{ color: 'white', marginTop: '8px' }}>{calculateStreak()} days</p>
+          <p style={{ color: '#e5fff3', marginTop: '8px' }}>{calculateStreak()} days</p>
         </div>
 
-        <div style={{...mockStyle.card, backgroundColor: '#1e293b'}}>
+        <div style={{...mockStyle.card, backgroundColor: 'rgba(14,25,27,0.6)', border: '1px solid rgba(0,255,156,0.2)'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <div style={mockStyle.iconWrapper('#a78bfa')}><Icon name="Target" color="#a78bfa" /></div>
-            <span style={{ fontSize: '14px', color: '#94a3b8' }}>Total Sessions</span>
+            <div style={mockStyle.iconWrapper('#00ff9c')}><Icon name="Target" color="#00ff9c" /></div>
+            <span style={{ fontSize: '14px', color: '#a9ffdf' }}>Total Sessions</span>
           </div>
-          <p style={{ color: 'white', marginTop: '8px' }}>{totalSessions}</p>
+          <p style={{ color: '#e5fff3', marginTop: '8px' }}>{totalSessions}</p>
         </div>
 
-        <div style={{...mockStyle.card, backgroundColor: '#1e293b'}}>
+        <div style={{...mockStyle.card, backgroundColor: 'rgba(14,25,27,0.6)', border: '1px solid rgba(0,255,156,0.2)'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <div style={mockStyle.iconWrapper('#fb923c')}><Icon name="TrendingUp" color="#fb923c" /></div>
-            <span style={{ fontSize: '14px', color: '#94a3b8' }}>Avg Session</span>
+            <div style={mockStyle.iconWrapper('#00ff9c')}><Icon name="TrendingUp" color="#00ff9c" /></div>
+            <span style={{ fontSize: '14px', color: '#a9ffdf' }}>Avg Session</span>
           </div>
-          <p style={{ color: 'white', marginTop: '8px' }}>{formatTime(averageSessionTime)}</p>
+          <p style={{ color: '#e5fff3', marginTop: '8px' }}>{formatTime(averageSessionTime)}</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-        {/* Study Timer */}
-        <div style={{...mockStyle.card, backgroundColor: '#1e293b'}}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Icon name="BarChart3" color="#f1f5f9" />
-            <h3 style={{ color: 'white', margin: 0 }}>Study Timer</h3>
-          </div>
-
-          {!activeTimer ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>Select Topic</label>
-                <select
-                  style={{ width: '100%', padding: '12px', border: '1px solid #334155', borderRadius: '8px', backgroundColor: '#0f172a', color: 'white' }}
-                  value={selectedTopic}
-                  onChange={(e) => setSelectedTopic(e.target.value)}
-                >
-                  <option value="" style={{backgroundColor: '#1e293b'}}>Choose a topic...</option>
-                  {uniqueTopics.map((topic) => (
-                    <option key={topic} value={topic} style={{backgroundColor: '#1e293b'}}>
-                      {topic}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={startTimer}
-                disabled={!selectedTopic}
-                style={{ ...mockStyle.button, ...mockStyle.greenButton, opacity: !selectedTopic ? 0.6 : 1 }}
-              >
-                <Icon name="Play" color="white" size={16} />
-                Start Study Session
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ textAlign: 'center', padding: '32px', backgroundColor: '#0f172a', borderRadius: '8px', border: '1px solid #334155' }}>
-                <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>Studying: {activeTimer.topic}</p>
-                <p style={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>{formatTime(timerMinutes)}</p>
-              </div>
-              <button
-                onClick={stopTimer}
-                style={{ ...mockStyle.button, ...mockStyle.destructiveButton }}
-              >
-                <Icon name="Pause" color="white" size={16} />
-                Stop Session
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Today's Progress */}
-        <div style={{...mockStyle.card, backgroundColor: '#1e293b'}}>
-          <h3 style={{ color: 'white', marginBottom: '16px' }}>Today's Progress</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-              <span style={{ color: '#94a3b8' }}>Study Time</span>
-              <span style={{ color: 'white' }}>{formatTime(todayStudyTime)}</span>
-            </div>
-            <div style={mockStyle.progressContainer}>
-              <div style={{ ...mockStyle.progressFill, width: `${Math.min((todayStudyTime / 180) * 100, 100)}%` }}></div>
-            </div>
-            <p style={{ fontSize: '12px', color: '#64748b' }}>Daily goal: 3 hours ({formatTime(180)})</p>
-          </div>
-        </div>
-      </div>
+      {/* Sections removed: Study Timer and Today's Progress */}
 
       {/* Topic Progress (based on mandatory quizzes passed) */}
-      <div style={{ ...mockStyle.card, marginTop: '24px', backgroundColor: '#1e293b' }}>
-        <h3 style={{ color: 'white', marginBottom: '16px' }}>Progress by Topic</h3>
+      <div style={{ ...mockStyle.card, marginTop: '24px', backgroundColor: 'rgba(14,25,27,0.6)', border: '1px solid rgba(0,255,156,0.2)' }}>
+        <h3 style={{ color: '#e5fff3', marginBottom: '16px' }}>Progress by Topic</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {(topicProgress.length ? topicProgress : topics.map(t => ({ topic: t, progressPercent: 0, quizzesPassed: 0, quizzesRequired: 0 })) ).map((tp) => {
             const percent = Math.max(0, Math.min(100, Math.round(tp.progressPercent || 0)));
             return (
               <div key={tp.topic} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'white' }}>{tp.topic}</span>
-                  <span style={{ fontSize: '14px', color: '#94a3b8' }}>{percent}%</span>
+                  <span style={{ color: '#e5fff3' }}>{tp.topic}</span>
+                  <span style={{ fontSize: '14px', color: '#a9ffdf' }}>{percent}%</span>
                 </div>
-                <div style={mockStyle.progressContainer}>
-                  <div style={{ ...mockStyle.progressFill, width: `${percent}%` }}></div>
+                <div style={{ ...mockStyle.progressContainer, backgroundColor: 'rgba(0,255,156,0.15)' }}>
+                  <div style={{ ...mockStyle.progressFill, backgroundColor: '#00ff9c', width: `${percent}%`, boxShadow: '0 0 8px rgba(0,255,156,0.5)' }}></div>
                 </div>
                 {typeof tp.quizzesPassed === 'number' && typeof tp.quizzesRequired === 'number' && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a9ffdf' }}>
                     <span>{tp.quizzesPassed}/{tp.quizzesRequired} quizzes</span>
                     <span>{percent}% complete</span>
                   </div>
@@ -392,36 +327,7 @@ export function Profile({ onBack, topics, user }) {
           })}
         </div>
       </div>
-
-      {/* Recent Sessions */}
-      <div style={{ ...mockStyle.card, marginTop: '24px', backgroundColor: '#1e293b' }}>
-        <h3 style={{ color: 'white', marginBottom: '16px' }}>Recent Study Sessions</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {studySessions
-            .slice()
-            .reverse()
-            .slice(0, 10)
-            .map((session) => (
-              <div
-                key={session.id}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#0f172a', borderRadius: '8px' }}
-              >
-                <div>
-                  <p style={{ color: 'white', margin: 0 }}>{session.topic}</p>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                    {new Date(session.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-                <span style={{ color: 'white' }}>{formatTime(session.duration)}</span>
-              </div>
-            ))}
-        </div>
-      </div>
+      {/* Section removed: Recent Sessions */}
     </div>
   );
 }

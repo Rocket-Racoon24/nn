@@ -3,7 +3,10 @@ from flask import Blueprint, request, jsonify
 import json
 import re
 from utils import get_local_llm_response # <-- Import from our new utils file
-from db_operations import DatabaseOperations, roadmaps_collection
+from db_operations import (
+    DatabaseOperations, roadmaps_collection, notes_collection, quizzes_collection,
+    quiz_attempts_collection, quiz_status_collection, progress_collection
+)
 from auth_routes import token_required
 
 roadmap_bp = Blueprint('roadmap_bp', __name__)
@@ -438,6 +441,53 @@ def get_quiz_status():
         return jsonify({"status": status}), 200
     except Exception as e:
         return jsonify({"error": f"Failed to get status: {str(e)}"}), 500
+
+@roadmap_bp.route("/delete_roadmap", methods=["DELETE"])
+@token_required
+def delete_roadmap():
+    data = request.get_json() or {}
+    topic = data.get('topic')
+    user_email = request.user['email']
+    if not topic:
+        return jsonify({"error": "Missing topic"}), 400
+    try:
+        # Find roadmap to collect main topics
+        rm = roadmaps_collection.find_one({"user_email": user_email, "topic": topic})
+        main_titles = []
+        if rm:
+            topics_array = rm.get("roadmap_data", {}).get("topics") if isinstance(rm.get("roadmap_data"), dict) else rm.get("topics")
+            if isinstance(topics_array, list):
+                for item in topics_array:
+                    if isinstance(item, dict) and item.get("title"):
+                        main_titles.append(item.get("title"))
+                    elif isinstance(item, str):
+                        main_titles.append(item)
+        topics_to_delete = [topic] + main_titles
+
+        # Delete roadmap
+        roadmaps_collection.delete_many({"user_email": user_email, "topic": topic})
+
+        # Delete related notes (details, sub_details, quiz, summary)
+        notes_collection.delete_many({"user_email": user_email, "topic": {"$in": topics_to_delete}})
+
+        # Delete quizzes (definitions)
+        quizzes_collection.delete_many({"user_email": user_email, "topic": {"$in": topics_to_delete}})
+
+        # Delete quiz attempts
+        quiz_attempts_collection.delete_many({"user_email": user_email, "topic": {"$in": topics_to_delete}})
+
+        # Delete quiz status
+        quiz_status_collection.delete_many({"user_email": user_email, "topic": {"$in": topics_to_delete}})
+
+        # Remove from progress.topic_progress array
+        progress_collection.update_one(
+            {"email": user_email},
+            {"$pull": {"topic_progress": {"topic": topic}}}
+        )
+
+        return jsonify({"message": "Roadmap deleted"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to delete roadmap: {str(e)}"}), 500
 
 # Route to get topic count for the authenticated user
 @roadmap_bp.route("/get_topic_count", methods=["GET"])

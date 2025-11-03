@@ -7,6 +7,7 @@ import styles from './Home.module.css';
 
 // Import the new components
 import Sidebar from './components/Sidebar';
+import Settings from './Settings';
 import Header from './components/Header';
 import Chatbot from './components/Chatbot';
 import SummaryView from './components/SummaryView';
@@ -125,8 +126,39 @@ function Home() {
     setActiveProjectId(null);
   };
 
+  const handleDeleteProject = async (topic) => {
+    const token = localStorage.getItem("token");
+    if (!token || !topic) return;
+    try {
+      const res = await fetch("http://localhost:5000/delete_roadmap", {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ topic })
+      });
+      if (res.ok) {
+        setProjects(prev => prev.filter(p => p.topic !== topic));
+        if (activeProjectId) {
+          const active = projects.find(p => p.id === activeProjectId);
+          if (active && active.topic === topic) {
+            setActiveProjectId(null);
+            setCurrentView('projects');
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to delete roadmap:', e);
+    }
+  };
+
   const handleShowProfile = () => {
     setCurrentView('profile');
+  };
+
+  const handleShowSettings = () => {
+    setCurrentView('settings');
   };
 
   const handleLogout = () => {
@@ -158,6 +190,7 @@ function Home() {
           activeProjectId={activeProjectId}
           onSelectProject={setActiveProjectId}
           onNewProject={handleNewProject}
+          onDeleteProject={handleDeleteProject}
         />
 
         <main className={styles['main']}>
@@ -166,6 +199,7 @@ function Home() {
             onShowProfile={handleShowProfile}
             onLogout={handleLogout}
             onToggleSummary={handleToggleSummary}
+            onShowSettings={handleShowSettings}
           />
 
           {/* --- Main Content Area --- */}
@@ -185,6 +219,8 @@ function Home() {
             ) : (
               <RoadmapGenerator onRoadmapGenerated={handleRoadmapGenerated} />
             )
+          ) : currentView === 'settings' ? (
+            <Settings onBack={() => setCurrentView('projects')} />
           ) : (
             <SummaryView
               summaryContent={summaryContent}

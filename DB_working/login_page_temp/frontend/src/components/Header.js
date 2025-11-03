@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { PomodoroPanel } from '../Pomodoro'; // Assuming Pomodoro.js is in src/
 import styles from './Header.module.css'; // You will need to create Header.module.css
 
-const Header = ({ user, onShowProfile, onLogout, onToggleSummary }) => {
+const Header = ({ user, onShowProfile, onLogout, onToggleSummary, onShowSettings }) => {
   // State for dropdowns is now local to the Header
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [pomodoroOpen, setPomodoroOpen] = useState(false);
@@ -44,7 +44,7 @@ const Header = ({ user, onShowProfile, onLogout, onToggleSummary }) => {
       {showProfileMenu && (
           <div className={styles['profile-menu']}>
             <p onClick={handleProfileClick}>👤 {user ? user.name : "Profile"}</p>
-            <p>⚙️ Settings</p>
+            <p onClick={() => { setShowProfileMenu(false); onShowSettings && onShowSettings(); }}>⚙️ Settings</p>
             <p onClick={onLogout}>
                 🚪 Logout
             </p>
