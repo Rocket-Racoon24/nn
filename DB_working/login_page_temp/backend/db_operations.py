@@ -15,6 +15,7 @@ db = client[DB_NAME]
 
 # Collections
 sessions_collection = db.sessions
+progress_collection = db.progress
 roadmaps_collection = db.roadmaps
 chat_history_collection = db.chat_history
 notes_collection = db.notes
@@ -65,11 +66,62 @@ class DatabaseOperations:
     
     @staticmethod
     def deactivate_session(user_email):
-        """Deactivate user session on logout"""
+        """Deactivate user session on logout and update total time spent."""
+        from datetime import timezone as _tz
+        now = datetime.now(_tz.utc)
+
+        # 1) Get active session
+        session = sessions_collection.find_one({"user_email": user_email, "is_active": True})
+        if not session:
+            return None
+
+        # 2) Calculate duration from login_time in session_data
+        login_time_str = session.get("session_data", {}).get("login_time")
+        if not login_time_str:
+            duration_minutes = 0
+        else:
+            try:
+                if 'Z' in login_time_str or '+' in login_time_str or login_time_str.endswith('+00:00'):
+                    login_time = datetime.fromisoformat(login_time_str.replace('Z', '+00:00'))
+                else:
+                    login_time = datetime.fromisoformat(login_time_str)
+                if login_time.tzinfo is None:
+                    login_time = login_time.replace(tzinfo=_tz.utc)
+            except Exception:
+                login_time = session.get("created_at", now)
+                if isinstance(login_time, str):
+                    login_time = datetime.fromisoformat(login_time.replace('Z', '+00:00'))
+                if login_time.tzinfo is None:
+                    login_time = login_time.replace(tzinfo=_tz.utc)
+
+            duration_minutes = (now - login_time).total_seconds() / 60
+            if duration_minutes < 0:
+                duration_minutes = 0
+
+        # 3) Mark session inactive
         sessions_collection.update_one(
-            {"user_email": user_email, "is_active": True},
-            {"$set": {"is_active": False}}
+            {"_id": session["_id"]},
+            {"$set": {"is_active": False, "last_accessed": now}}
         )
+
+        # 4) Update progress totals
+        existing_progress = progress_collection.find_one({"email": user_email})
+        if not existing_progress:
+            progress_collection.insert_one({
+                "email": user_email,
+                "total_time_spent": duration_minutes,
+                "last_logout_end": now.isoformat(),
+                "last_session_duration": round(duration_minutes, 2),
+                "created_at": now.isoformat()
+            })
+        else:
+            progress_collection.update_one(
+                {"email": user_email},
+                {"$inc": {"total_time_spent": duration_minutes},
+                 "$set": {"last_logout_end": now.isoformat(), "last_session_duration": round(duration_minutes, 2)}}
+            )
+
+        return round(duration_minutes, 2)
     
     @staticmethod
     def save_roadmap(user_email, topic, roadmap_data):

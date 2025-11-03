@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect} from 'react';
 
 // Mock replacements for UI components and icons
 const mockStyle = {
@@ -28,7 +28,7 @@ function Icon({ name, color, size = 20 }) {
 
 // Renamed from ProgressTracker to Profile and added 'user' prop
 export function Profile({ onBack, topics, user }) {
-  // REMOVED <StudySession[]>
+
   const [studySessions, setStudySessions] = useState([
     {
       id: '1',
@@ -59,49 +59,64 @@ export function Profile({ onBack, topics, user }) {
   const [selectedTopic, setSelectedTopic] = useState('');
 
   // Calculate statistics (used for both Profile Card and Stats)
-  const derivedTotalStudyTime = studySessions.reduce((acc, session) => acc + session.duration, 0);
-  const derivedTotalSessions = studySessions.length;
-  const [totalStudyTime, setTotalStudyTime] = useState(derivedTotalStudyTime);
-  const [totalSessions, setTotalSessions] = useState(derivedTotalSessions);
-  const averageSessionTime = totalSessions > 0 ? Math.round(totalStudyTime / totalSessions) : 0;
+  //getting toal session count per user
+  const [totalSessions, setTotalSessions] = useState(0);
+  const [totalStudyTime, setTotalStudyTime] = useState(0);
 
-  // Fetch topic count from backend (overrides derived count when available)
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchTopicCount = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) return;
-        const res = await fetch("http://localhost:5000/get_topic_count", {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await fetch("http://localhost:5000/get_topic_count", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (typeof data.topic_count === 'number') {
-          setTotalSessions(data.topic_count);
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
-      } catch (_) { /* silent */ }
+  
+        const data = await response.json();
+        console.log("Fetched topic count data:", data);
+        setTotalSessions(data.topic_count); // ✅ Correct key
+      } catch (error) {
+        console.error("Error fetching topic count:", error);
+      }
     };
+  
     fetchTopicCount();
   }, []);
 
-  // Fetch total time spent from backend (overrides derived time when available)
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchTotalTime = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) return;
-        const res = await fetch("http://localhost:5000/get_total_time", {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await fetch("http://localhost:5000/get_total_time", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (typeof data.total_time_spent === 'number') {
-          setTotalStudyTime(Math.round(data.total_time_spent));
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
-      } catch (_) { /* silent */ }
+  
+        const data = await response.json();
+        console.log("Fetched total time data:", data);
+        // total_time_spent is in minutes, store it as is
+        setTotalStudyTime(data.total_time_spent || 0);
+      } catch (error) {
+        console.error("Error fetching total time:", error);
+        // Set to 0 if fetch fails
+        setTotalStudyTime(0);
+      }
     };
+  
     fetchTotalTime();
   }, []);
+  
+  const averageSessionTime = totalSessions > 0 ? Math.round(totalStudyTime / totalSessions) : 0;
 
   // Calculate today's study time
   const today = new Date();
@@ -382,35 +397,8 @@ export function Profile({ onBack, topics, user }) {
         </div>
       </div>
 
-      {/* Recent Sessions */}
-      <div style={{ ...mockStyle.card, marginTop: '24px', backgroundColor: '#1e293b' }}>
-        <h3 style={{ color: 'white', marginBottom: '16px' }}>Recent Study Sessions</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {studySessions
-            .slice()
-            .reverse()
-            .slice(0, 10)
-            .map((session) => (
-              <div
-                key={session.id}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#0f172a', borderRadius: '8px' }}
-              >
-                <div>
-                  <p style={{ color: 'white', margin: 0 }}>{session.topic}</p>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                    {new Date(session.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-                <span style={{ color: 'white' }}>{formatTime(session.duration)}</span>
-              </div>
-            ))}
-        </div>
-      </div>
+      
+      
     </div>
   );
 }

@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 import json
 import re
 from utils import get_local_llm_response # <-- Import from our new utils file
-from db_operations import DatabaseOperations
+from db_operations import DatabaseOperations, roadmaps_collection
 from auth_routes import token_required
 
 roadmap_bp = Blueprint('roadmap_bp', __name__)
@@ -438,6 +438,20 @@ def get_quiz_status():
         return jsonify({"status": status}), 200
     except Exception as e:
         return jsonify({"error": f"Failed to get status: {str(e)}"}), 500
+
+# Route to get topic count for the authenticated user
+@roadmap_bp.route("/get_topic_count", methods=["GET"])
+@token_required
+def get_topic_count():
+    user_email = request.user['email']
+    try:
+        count = roadmaps_collection.count_documents({"user_email": user_email})
+        return jsonify({
+            "user_email": user_email,
+            "topic_count": count
+        }), 200
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 def create_analysis_prompt(answers_to_grade):
     # Convert the list of answers into a string for the prompt
