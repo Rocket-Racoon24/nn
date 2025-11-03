@@ -10,14 +10,21 @@ function Quiz() {
   const [topic, setTopic] = useState('');
   const [mainTopic, setMainTopic] = useState('');
   const [currentQuestions, setCurrentQuestions] = useState([]);
-  const [view, setView] = useState('start'); // 'start', 'loading', 'quiz', 'results'
-  const [numQuestions, setNumQuestions] = useState(10);
-  const [quizType, setQuizType] = useState('MCQ');
+  const [view, setView] = useState('start'); // 'start', 'loading', 'quiz', 'results', 'practice'
+  const [currentQuizType, setCurrentQuizType] = useState(null); // 'mcq', 'descriptive', 'practice'
+  const [practiceMode, setPracticeMode] = useState(false);
+  const [practiceNumQuestions, setPracticeNumQuestions] = useState(10);
+  const [practiceQuizType, setPracticeQuizType] = useState('MCQ');
+  
   const [mcqScore, setMcqScore] = useState(0);
   const [mcqTotal, setMcqTotal] = useState(0);
   const [descriptiveScore, setDescriptiveScore] = useState(0);
   const [descriptiveTotal, setDescriptiveTotal] = useState(0);
   const [feedback, setFeedback] = useState('');
+  
+  // Quiz completion status
+  const [mcqPassed, setMcqPassed] = useState(false);
+  const [descriptivePassed, setDescriptivePassed] = useState(false);
 
   useEffect(() => {
     const topicParam = searchParams.get('topic');
@@ -29,21 +36,74 @@ function Quiz() {
     if (mainTopicParam) {
       setMainTopic(mainTopicParam);
     } else {
-      // Try to get from sessionStorage
       const savedMainTopic = sessionStorage.getItem('roadmapQuery');
       if (savedMainTopic) {
         setMainTopic(savedMainTopic);
       }
     }
-  }, [searchParams]);
 
-  const handleStartQuiz = async () => {
+    // Load quiz completion status from localStorage
+    loadQuizStatus();
+  }, [searchParams, topic, mainTopic]);
+
+  const loadQuizStatus = () => {
+    if (!topic || !mainTopic) return;
+    
+    try {
+      const quizStatus = JSON.parse(localStorage.getItem('quizStatus')) || {};
+      const key = `${mainTopic}::${topic}`;
+      const status = quizStatus[key] || { mcqPassed: false, descriptivePassed: false };
+      setMcqPassed(status.mcqPassed || false);
+      setDescriptivePassed(status.descriptivePassed || false);
+    } catch (err) {
+      console.error("Error loading quiz status:", err);
+    }
+  };
+
+  const saveQuizStatus = (passed, quizType) => {
+    if (!topic || !mainTopic) return;
+    
+    try {
+      const quizStatus = JSON.parse(localStorage.getItem('quizStatus')) || {};
+      const key = `${mainTopic}::${topic}`;
+      if (!quizStatus[key]) {
+        quizStatus[key] = { mcqPassed: false, descriptivePassed: false };
+      }
+      
+      if (quizType === 'mcq') {
+        quizStatus[key].mcqPassed = passed;
+      } else if (quizType === 'descriptive') {
+        quizStatus[key].descriptivePassed = passed;
+      }
+      
+      localStorage.setItem('quizStatus', JSON.stringify(quizStatus));
+      loadQuizStatus();
+    } catch (err) {
+      console.error("Error saving quiz status:", err);
+    }
+  };
+
+  const handleStartMCQ = async () => {
+    await handleStartQuiz('mcq', 'MCQ', 10);
+  };
+
+  const handleStartDescriptive = async () => {
+    await handleStartQuiz('descriptive', 'Descriptive', 10);
+  };
+
+  const handleStartPractice = async () => {
+    await handleStartQuiz('practice', practiceQuizType, parseInt(practiceNumQuestions));
+    setPracticeMode(true);
+  };
+
+  const handleStartQuiz = async (type, quizTypeParam, numQuestions) => {
     if (!topic) {
       alert("Error: No topic found. Returning to roadmap.");
       navigate('/home');
       return;
     }
 
+    setCurrentQuizType(type);
     setView('loading');
 
     try {
@@ -56,8 +116,8 @@ function Quiz() {
         },
         body: JSON.stringify({ 
           topic,
-          num_questions: parseInt(numQuestions),
-          quiz_type: quizType
+          num_questions: numQuestions,
+          quiz_type: quizTypeParam
         }),
       });
 
@@ -72,6 +132,7 @@ function Quiz() {
     } catch (err) {
       alert(err.message);
       setView('start');
+      setCurrentQuizType(null);
     }
   };
 
@@ -89,8 +150,8 @@ function Quiz() {
           mcqScoreCount++;
         }
       } else if (question.type === 'descriptive') {
-        const textarea = document.querySelector(`#answer-${index}`);
-        if (textarea) {
+        const textarea = document.getElementById(`answer-${index}`);
+        if (textarea && textarea.value.trim()) {
           descriptiveAnswersToGrade.push({
             question: question.question,
             user_answer: textarea.value,
@@ -131,8 +192,6 @@ function Quiz() {
 
         const data = await response.json();
         descriptiveScoreCount = data.graded_answers.reduce((acc, a) => acc + a.score, 0);
-        setDescriptiveScore(descriptiveScoreCount);
-        setDescriptiveTotal(descriptiveTotalCount);
       } catch (err) {
         alert(err.message);
         return;
@@ -142,50 +201,49 @@ function Quiz() {
     // Update state and show results
     setMcqScore(mcqScoreCount);
     setMcqTotal(mcqTotalCount);
+    setDescriptiveScore(descriptiveScoreCount);
+    setDescriptiveTotal(descriptiveTotalCount);
+    
     showResults(mcqScoreCount, mcqTotalCount, descriptiveScoreCount, descriptiveTotalCount);
   };
 
   const showResults = (mcqScoreCount, mcqTotalCount, descriptiveScoreCount, descriptiveTotalCount) => {
-    // Calculate final scores
-    const finalScore = mcqScoreCount + descriptiveScoreCount;
-    const finalTotal = mcqTotalCount + descriptiveTotalCount;
-    
     setView('results');
     
     let feedbackText = "";
-    if (mcqTotalCount > 0) feedbackText += `MCQ: ${mcqScoreCount}/${mcqTotalCount}. `;
-    if (descriptiveTotalCount > 0) feedbackText += `Descriptive: ${descriptiveScoreCount}/${descriptiveTotalCount}. `;
+    const isMCQ = currentQuizType === 'mcq' || (currentQuizType === 'practice' && practiceQuizType === 'MCQ');
+    const isDescriptive = currentQuizType === 'descriptive' || (currentQuizType === 'practice' && practiceQuizType === 'Descriptive');
     
-    const percentage = finalTotal > 0 ? (finalScore / finalTotal) * 100 : 0;
-    if (percentage === 100) {
-      feedbackText += "Perfect Score! Excellent work!";
-    } else if (percentage > 80) {
-      feedbackText += "Excellent work!";
-    } else if (percentage > 50) {
-      feedbackText += "Good job, keep reviewing!";
-    } else {
-      feedbackText += "Keep practicing!";
+    if (isMCQ && mcqTotalCount > 0) {
+      const passed = mcqScoreCount >= 6;
+      feedbackText = `MCQ: ${mcqScoreCount}/${mcqTotalCount}. `;
+      feedbackText += passed ? "✓ Passed! (6/10 required)" : "✗ Failed! (Need 6/10 to pass)";
+      
+      if (!practiceMode && passed) {
+        saveQuizStatus(true, 'mcq');
+      }
+    } else if (isDescriptive && descriptiveTotalCount > 0) {
+      const passed = descriptiveScoreCount >= 6;
+      feedbackText = `Descriptive: ${descriptiveScoreCount}/${descriptiveTotalCount}. `;
+      feedbackText += passed ? "✓ Passed! (6/10 required)" : "✗ Failed! (Need 6/10 to pass)";
+      
+      if (!practiceMode && passed) {
+        saveQuizStatus(true, 'descriptive');
+      }
+    } else if (currentQuizType === 'practice' && practiceQuizType === 'Both') {
+      const finalScore = mcqScoreCount + descriptiveScoreCount;
+      const finalTotal = mcqTotalCount + descriptiveTotalCount;
+      if (mcqTotalCount > 0) feedbackText += `MCQ: ${mcqScoreCount}/${mcqTotalCount}. `;
+      if (descriptiveTotalCount > 0) feedbackText += `Descriptive: ${descriptiveScoreCount}/${descriptiveTotalCount}. `;
+      const percentage = finalTotal > 0 ? (finalScore / finalTotal) * 100 : 0;
+      if (percentage >= 60) {
+        feedbackText += "Great job!";
+      } else {
+        feedbackText += "Keep practicing!";
+      }
     }
     
     setFeedback(feedbackText);
-
-    // Mark as complete if 100% and save to localStorage
-    if (finalScore === finalTotal && finalTotal > 0 && mainTopic && topic) {
-      try {
-        const completionData = JSON.parse(localStorage.getItem('roadmapCompletion')) || {};
-        
-        if (!completionData[mainTopic]) {
-          completionData[mainTopic] = { totalModules: 0, completedModules: [] };
-        }
-        
-        const completed = new Set(completionData[mainTopic].completedModules || []);
-        completed.add(topic);
-        completionData[mainTopic].completedModules = [...completed];
-        localStorage.setItem('roadmapCompletion', JSON.stringify(completionData));
-      } catch (err) {
-        console.error("Failed to save completion status:", err);
-      }
-    }
   };
 
   const handleRetakeQuiz = () => {
@@ -196,42 +254,87 @@ function Quiz() {
     setDescriptiveScore(0);
     setDescriptiveTotal(0);
     setFeedback('');
+    setCurrentQuizType(null);
+    setPracticeMode(false);
+    loadQuizStatus();
   };
 
-  const handleCancel = () => {
+  const handleBackToRoadmap = () => {
     navigate('/home');
   };
 
+  const handleBackToStart = () => {
+    setView('start');
+    setCurrentQuestions([]);
+    setCurrentQuizType(null);
+    setPracticeMode(false);
+    loadQuizStatus();
+  };
+
+  const canAccessPractice = mcqPassed && descriptivePassed;
 
   return (
     <div className="quiz-container">
+      {/* Back to Roadmap Button - Always visible */}
+      <button className="back-to-roadmap-button" onClick={handleBackToRoadmap}>
+        ← Back to Roadmap
+      </button>
+
       {view === 'start' && (
         <div className="quiz-start-view">
           <h1 className="quiz-topic-title">Quiz: {topic || 'Loading Topic...'}</h1>
-          <p>Select your quiz options:</p>
-          <div className="start-options">
-            <select 
-              id="quiz-type"
-              value={quizType}
-              onChange={(e) => setQuizType(e.target.value)}
-            >
-              <option value="MCQ">MCQ Only</option>
-              <option value="Descriptive">Descriptive Only</option>
-              <option value="Both">MCQ & Descriptive</option>
-            </select>
-            <select 
-              id="num-questions"
-              value={numQuestions}
-              onChange={(e) => setNumQuestions(e.target.value)}
-            >
-              <option value="5">5 Questions</option>
-              <option value="10">10 Questions</option>
-              <option value="20">20 Questions</option>
-            </select>
+          
+          <div className="mandatory-quizzes">
+            <h2>Mandatory Quizzes (10 questions each, 6/10 to pass)</h2>
+            <div className="quiz-buttons-container">
+              <button 
+                className={`quiz-type-button mcq-button ${mcqPassed ? 'passed' : ''}`}
+                onClick={handleStartMCQ}
+                disabled={mcqPassed}
+              >
+                {mcqPassed ? '✓ MCQ Quiz (Passed)' : 'MCQ Quiz'}
+                {mcqPassed && <span className="checkmark">✓</span>}
+              </button>
+              
+              <button 
+                className={`quiz-type-button descriptive-button ${descriptivePassed ? 'passed' : ''}`}
+                onClick={handleStartDescriptive}
+                disabled={descriptivePassed}
+              >
+                {descriptivePassed ? '✓ Descriptive Quiz (Passed)' : 'Descriptive Quiz'}
+                {descriptivePassed && <span className="checkmark">✓</span>}
+              </button>
+            </div>
           </div>
-          <button className="start-quiz-button" onClick={handleStartQuiz}>
-            Start Quiz
-          </button>
+
+          {canAccessPractice && (
+            <div className="practice-quiz-section">
+              <h2>Practice Quiz (Unlocked!)</h2>
+              <p>Customize your practice quiz:</p>
+              <div className="practice-options">
+                <select 
+                  value={practiceQuizType}
+                  onChange={(e) => setPracticeQuizType(e.target.value)}
+                >
+                  <option value="MCQ">MCQ Only</option>
+                  <option value="Descriptive">Descriptive Only</option>
+                  <option value="Both">MCQ & Descriptive</option>
+                </select>
+                <select 
+                  value={practiceNumQuestions}
+                  onChange={(e) => setPracticeNumQuestions(e.target.value)}
+                >
+                  <option value="5">5 Questions</option>
+                  <option value="10">10 Questions</option>
+                  <option value="15">15 Questions</option>
+                  <option value="20">20 Questions</option>
+                </select>
+                <button className="practice-quiz-button" onClick={handleStartPractice}>
+                  Start Practice Quiz
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -243,6 +346,9 @@ function Quiz() {
 
       {view === 'quiz' && (
         <div className="quiz-view">
+          <button className="back-to-start-button" onClick={handleBackToStart}>
+            ← Back to Quiz Selection
+          </button>
           <div id="quiz-questions-container">
             {currentQuestions.map((q, index) => (
               <div key={index} className="question-item" data-type={q.type}>
@@ -273,9 +379,6 @@ function Quiz() {
               </div>
             ))}
           </div>
-          <button className="cancel-quiz-button secondary-button" onClick={handleCancel}>
-            Cancel Quiz
-          </button>
           <button className="submit-quiz-button" onClick={handleSubmitQuiz}>
             Submit
           </button>
@@ -285,12 +388,38 @@ function Quiz() {
       {view === 'results' && (
         <div className="quiz-results-view">
           <h2 className="score-text">
-            Your Score: {mcqScore + (descriptiveScore || 0)} / {mcqTotal + (descriptiveTotal || 0)}
+            Your Score: {
+              currentQuizType === 'mcq' || (currentQuizType === 'practice' && practiceQuizType === 'MCQ')
+                ? `${mcqScore} / ${mcqTotal}`
+                : currentQuizType === 'descriptive' || (currentQuizType === 'practice' && practiceQuizType === 'Descriptive')
+                ? `${descriptiveScore} / ${descriptiveTotal}`
+                : `${mcqScore + descriptiveScore} / ${mcqTotal + descriptiveTotal}`
+            }
           </h2>
           <p className="feedback-text">{feedback}</p>
-          <button className="retake-quiz-button" onClick={handleRetakeQuiz}>
-            Take Another Quiz
-          </button>
+          
+          {!practiceMode && (
+            <div className="pass-status">
+              {(currentQuizType === 'mcq' && mcqScore >= 6) || 
+               (currentQuizType === 'descriptive' && descriptiveScore >= 6) ? (
+                <p className="pass-message">✓ Congratulations! You passed!</p>
+              ) : (
+                <p className="fail-message">✗ You need 6/10 to pass. Try again!</p>
+              )}
+            </div>
+          )}
+          
+          <div className="results-buttons">
+            <button className="retake-quiz-button" onClick={handleRetakeQuiz}>
+              {practiceMode ? 'Back to Quiz Selection' : 
+               ((currentQuizType === 'mcq' && mcqScore < 6) || 
+                (currentQuizType === 'descriptive' && descriptiveScore < 6)) 
+               ? 'Try Again' : 'Back to Quiz Selection'}
+            </button>
+            <button className="back-to-roadmap-button" onClick={handleBackToRoadmap}>
+              Back to Roadmap
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -298,4 +427,3 @@ function Quiz() {
 }
 
 export default Quiz;
-

@@ -118,7 +118,16 @@ def generate_roadmap():
     try:
         prompt = create_roadmap_prompt(topic)
         response_str = get_local_llm_response(prompt)
+        
+        # Check if the response is an error message from the LLM server
+        if response_str.startswith("Error connecting to local LLM server"):
+            return jsonify({
+                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
+            }), 503
+        
         match = re.search(r'\[.*\]', response_str, re.DOTALL)
+        if not match:
+            raise ValueError("Could not find valid JSON array in LLM response")
         roadmap = json.loads(match.group(0))
         
         # Save roadmap to database
@@ -148,7 +157,16 @@ def generate_details():
     try:
         prompt = create_details_prompt(title)
         response_str = get_local_llm_response(prompt)
+        
+        # Check if the response is an error message from the LLM server
+        if response_str.startswith("Error connecting to local LLM server"):
+            return jsonify({
+                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
+            }), 503
+        
         match = re.search(r'\[.*\]', response_str, re.DOTALL)
+        if not match:
+            raise ValueError("Could not find valid JSON array in LLM response")
         details = json.loads(match.group(0))
         
         # Save details to notes collection
@@ -175,6 +193,12 @@ def generate_sub_details():
     try:
         prompt = create_sub_details_prompt(term, context)
         sub_details = get_local_llm_response(prompt)
+
+        # Check if the response is an error message from the LLM server
+        if sub_details.startswith("Error connecting to local LLM server"):
+            return jsonify({
+                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
+            }), 503
 
         # --- ADD THIS CLEANING LOGIC ---
         sub_details = sub_details.strip()
@@ -214,8 +238,46 @@ def generate_quiz():
         # Pass all three arguments to the prompt function
         prompt = create_quiz_prompt(topic, num_questions, quiz_type)
         response_str = get_local_llm_response(prompt)
+        
+        # Check if the response is an error message from the LLM server
+        if response_str.startswith("Error connecting to local LLM server"):
+            return jsonify({
+                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
+            }), 503
+        
+        # Clean the response - remove markdown code blocks if present
+        response_str = response_str.strip()
+        if response_str.startswith("```json"):
+            response_str = response_str[7:]
+        elif response_str.startswith("```"):
+            response_str = response_str[3:]
+        if response_str.endswith("```"):
+            response_str = response_str[:-3]
+        response_str = response_str.strip()
+        
+        # Try to find JSON object
         match = re.search(r'\{.*\}', response_str, re.DOTALL)
-        quiz_data = json.loads(match.group(0))
+        if match:
+            quiz_data = json.loads(match.group(0))
+        else:
+            # If no match, try parsing the whole response
+            try:
+                quiz_data = json.loads(response_str)
+            except json.JSONDecodeError:
+                # Last resort: try to extract content between first { and last }
+                start_idx = response_str.find('{')
+                end_idx = response_str.rfind('}')
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    quiz_data = json.loads(response_str[start_idx:end_idx+1])
+                else:
+                    raise ValueError(f"Could not find valid JSON in LLM response. Response preview: {response_str[:500]}")
+        
+        # Validate that quiz_data has the expected structure
+        if not isinstance(quiz_data, dict) or 'questions' not in quiz_data:
+            raise ValueError("Quiz response missing 'questions' key")
+        
+        if not isinstance(quiz_data['questions'], list):
+            raise ValueError("'questions' must be an array")
         
         # Save quiz to notes collection
         DatabaseOperations.save_note(
@@ -227,6 +289,9 @@ def generate_quiz():
         )
         
         return jsonify(quiz_data)
+    except json.JSONDecodeError as e:
+        response_preview = response_str[:500] if 'response_str' in locals() else "Response not available"
+        return jsonify({"error": f"Failed to parse JSON from LLM response: {str(e)}. Response preview: {response_preview}"}), 500
     except Exception as e:
         return jsonify({"error": f"An error occurred while parsing the quiz: {str(e)}"}), 500
 
@@ -295,6 +360,12 @@ def analyze_answers():
     try:
         prompt = create_analysis_prompt(answers_to_grade)
         response_str = get_local_llm_response(prompt)
+        
+        # Check if the response is an error message from the LLM server
+        if response_str.startswith("Error connecting to local LLM server"):
+            return jsonify({
+                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
+            }), 503
         
         # Find the JSON array
         match = re.search(r'\[.*\]', response_str, re.DOTALL)

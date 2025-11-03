@@ -25,6 +25,11 @@ def get_local_llm_response(prompt_text):
         # Reliably remove the <think> block if the AI still adds it
         content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
         return content
+    except requests.exceptions.ConnectionError as e:
+        error_msg = f"Error connecting to local LLM server: {e}"
+        print(error_msg)
+        return error_msg
     except requests.exceptions.RequestException as e:
-        print(f"Error connecting to local LLM server: {e}")
-        return f"Error connecting to local LLM server: {e}"
+        error_msg = f"Error connecting to local LLM server: {e}"
+        print(error_msg)
+        return error_msg
