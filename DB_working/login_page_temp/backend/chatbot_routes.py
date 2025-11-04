@@ -1,6 +1,8 @@
 # chatbot_routes.py
 from flask import Blueprint, request, jsonify, session
 import PyPDF2
+import json
+import re
 from utils import get_local_llm_response, LLMConnectionError
 from db_operations import DatabaseOperations
 from auth_routes import token_required
@@ -86,13 +88,18 @@ Structure the summary using the following specific hierarchy. **Use bolding (`**
 
 def create_chat_prompt(user_message, bot_name="Xiao"):
     """
-    Creates a prompt that gives the AI a name and personality.
+    Creates a simple, highly concise prompt where the AI is helpful, cheerful, 
+    and brief, with a minimal introduction.
     """
     return f"""
     ### INSTRUCTIONS ###
-    You are a helpful and friendly assistant named {bot_name}.
-    Your personality is curious, cheerful, witty and has a touch of humor.
-    Always respond as {bot_name}. Do not reveal you are an AI model.
+    You are a **helpful and concise assistant** named {bot_name}.
+
+    **Personality Profile:**
+    * **Tone:** Cheerful, lightly witty, and mildly curious. Keep the cheerfulness **subtle**.
+    * **Initial Greeting:** If this is the start of a conversation, use a **short, one-sentence introduction** (e.g., "Hi! I'm {bot_name}, how can I help today?").
+    * **Conciseness Rule:** **Be brief and to the point.** Do not offer extra information or elaborate on topics unless explicitly asked by the user. Answer the question asked, and then stop.
+    * **Identity:** Always respond naturally as {bot_name}. Do not reveal you are an AI model.
 
     ### USER MESSAGE ###
     {user_message}
@@ -104,10 +111,18 @@ def create_chat_prompt(user_message, bot_name="Xiao"):
 def ask_ai():
     user_message = request.form.get("message", "")
     pdf_files = request.files.getlist("files")
+    conversation_history_json = request.form.get("conversation_history", "[]")
     user_email = request.user['email']
 
     if not user_message and not pdf_files:
         return jsonify({"chat_reply": "Please provide a message or file.", "summary_content": None})
+
+    # Parse conversation history
+    conversation_history = []
+    try:
+        conversation_history = json.loads(conversation_history_json) if conversation_history_json else []
+    except:
+        conversation_history = []
 
     context_text = ""
     is_summarization_task = bool(pdf_files)
@@ -125,8 +140,18 @@ def ask_ai():
     if is_summarization_task:
         final_prompt = create_master_prompt(f"{user_message}\n{context_text}")
     else:
+        # Build context from conversation history
+        history_context = ""
+        if conversation_history:
+            history_context = "\n\n### CONVERSATION HISTORY ###\n"
+            for msg in conversation_history[-5:]:  # Last 5 messages for context
+                role = msg.get('role', 'user')
+                content = msg.get('content', '')
+                history_context += f"{role.capitalize()}: {content}\n"
+            history_context += "\n### CURRENT USER MESSAGE ###\n"
+        
         # Use our new function to give the bot its name and personality
-        final_prompt = create_chat_prompt(user_message, bot_name="Xiao")
+        final_prompt = create_chat_prompt(f"{history_context}{user_message}", bot_name="Xiao")
     
     try:
         ai_reply = get_local_llm_response(final_prompt)
@@ -194,3 +219,72 @@ def delete_pdf_summary(pdf_name):
         return jsonify({"status": "PDF summary deleted successfully"}), 200
     else:
         return jsonify({"error": "PDF summary not found"}), 404
+
+# Route to generate flashcards from PDF summary
+@chatbot_bp.route("/generate_flashcards/<pdf_name>", methods=["POST"])
+@token_required
+def generate_flashcards(pdf_name):
+    user_email = request.user['email']
+    
+    try:
+        # Get the PDF summary
+        pdf_summary = DatabaseOperations.get_pdf_summary_by_name(user_email, pdf_name)
+        if not pdf_summary:
+            return jsonify({"error": "PDF summary not found"}), 404
+        
+        summary_content = pdf_summary.get("summary_content", "")
+        if not summary_content:
+            return jsonify({"error": "No summary content available"}), 400
+        
+        # Create prompt for flashcard generation
+        flashcard_prompt = f"""
+### INSTRUCTIONS ###
+You are an expert educator. Create flashcards from the provided summary content.
+
+Generate flashcards in JSON format. Each flashcard should have a "question" and "answer" field.
+The questions should test understanding of key concepts, definitions, and important information.
+The answers should be concise but informative.
+
+Output ONLY a valid JSON array. Example format:
+[
+  {{"question": "What is the main concept?", "answer": "The main concept is..."}},
+  {{"question": "Define term X", "answer": "Term X is defined as..."}}
+]
+
+Generate 10-15 flashcards based on the importance of the content.
+
+### SUMMARY CONTENT ###
+{summary_content}
+"""
+        
+        response_str = get_local_llm_response(flashcard_prompt)
+        
+        # Extract JSON array from response
+        match = re.search(r'\[.*\]', response_str, re.DOTALL)
+        if not match:
+            return jsonify({"error": "Could not parse flashcards from AI response"}), 500
+        
+        flashcards = json.loads(match.group(0))
+        
+        # Validate flashcards structure
+        if not isinstance(flashcards, list):
+            return jsonify({"error": "Invalid flashcards format"}), 500
+        
+        # Save flashcards to database
+        DatabaseOperations.save_flashcards(user_email, pdf_name, flashcards)
+        
+        return jsonify({"flashcards": flashcards}), 200
+    except LLMConnectionError as e:
+        return jsonify({"error": str(e)}), 503
+    except json.JSONDecodeError as e:
+        return jsonify({"error": f"Failed to parse flashcards: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+# Route to get flashcards for a PDF
+@chatbot_bp.route("/get_flashcards/<pdf_name>", methods=["GET"])
+@token_required
+def get_flashcards(pdf_name):
+    user_email = request.user['email']
+    flashcards = DatabaseOperations.get_flashcards(user_email, pdf_name)
+    return jsonify({"flashcards": flashcards}), 200

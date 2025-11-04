@@ -147,6 +147,7 @@ export function PomodoroPanel({
   const panel = (
     <div
       ref={panelRef}
+      data-pomodoro-panel
       style={{
         position: "absolute",
         top: pos.top,

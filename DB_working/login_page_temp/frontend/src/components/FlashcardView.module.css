@@ -1,0 +1,239 @@
+/* FlashcardView.module.css */
+.flashcard-container {
+    padding: 1rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .back-btn {
+    background: rgba(14, 25, 27, 0.6);
+    color: #D6D9D8;
+    border: 1px solid rgba(0, 255, 156, 0.2);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+  
+  .back-btn:hover {
+    background: rgba(0, 255, 156, 0.1);
+    color: #00ff9c;
+    border-color: rgba(0, 255, 156, 0.7);
+    box-shadow: 0 0 15px rgba(0, 255, 156, 0.3);
+  }
+  
+  .flashcard-header {
+    margin-bottom: 2rem;
+  }
+  
+  .neon {
+    background: linear-gradient(90deg, #00ff9c, #00d68a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: 
+      drop-shadow(0 0 1px rgba(0, 255, 156, 0.8))
+      drop-shadow(0 0 6px rgba(0, 255, 156, 0.35));
+    margin-bottom: 1rem;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(14, 25, 27, 0.6);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff9c, #00d68a);
+    transition: width 0.3s ease;
+  }
+  
+  .progress-text {
+    color: #D6D9D8;
+    text-align: center;
+    font-size: 14px;
+  }
+  
+  /* --- NEW: Wrapper for card and side-nav buttons --- */
+  .flashcard-main-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    /* max-width for the whole area, allowing buttons to sit outside card */
+    max-width: 750px; 
+    margin: 2rem auto;
+  }
+  
+  .flashcard-wrapper {
+    perspective: 1000px;
+    min-height: 300px;
+    max-width: 600px;
+    width: 100%;
+    /* --- MODIFIED: margin removed, now handled by main-area --- */
+    margin: 0; 
+  }
+  
+  .flashcard {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    margin: 0 auto;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+    /* --- MODIFIED: Removed cursor: pointer --- */
+    cursor: default; 
+  }
+  
+  .flashcard.flipped {
+    transform: rotateY(180deg);
+  }
+  
+  .flashcard-front,
+  .flashcard-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(14, 25, 27, 0.8);
+    border: 2px solid rgba(0, 255, 156, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 255, 156, 0.1);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  
+  .flashcard-back {
+    transform: rotateY(180deg);
+  }
+  
+  .card-label {
+    color: #00ff9c;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+    font-weight: bold;
+  }
+  
+  .card-content {
+    color: #D6D9D8;
+    font-size: 18px;
+    line-height: 1.8;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    word-wrap: break-word;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+  
+  /* --- REMOVED: .hint class is no longer used --- */
+  /*
+  .hint {
+    ...
+  }
+  */
+  
+  .flashcard-controls {
+    display: flex;
+    /* --- MODIFIED: Center the single flip button --- */
+    justify-content: center; 
+    gap: 0; /* Was 1rem */
+    margin-top: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 1rem;
+  }
+  
+  .nav-btn,
+  .flip-btn {
+    /* --- MODIFIED: Removed flex: 1 --- */
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 156, 0.3);
+    background: rgba(14, 25, 27, 0.6);
+    color: #D6D9D8;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+  
+  /* --- MODIFIED: nav-btn hover state --- */
+  .nav-btn:hover:not(:disabled) {
+    background: rgba(0, 255, 156, 0.1);
+    color: #00ff9c;
+    border-color: rgba(0, 255, 156, 0.7);
+    box-shadow: 0 0 15px rgba(0, 255, 156, 0.3);
+  }
+  
+  /* --- NEW: Specific styles for side-nav buttons --- */
+  .nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  
+  .nav-prev {
+    left: 0;
+  }
+  
+  .nav-next {
+    right: 0;
+  }
+  /* --- End new nav-btn styles --- */
+  
+  
+  .nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .flip-btn {
+    background: linear-gradient(90deg, #00ff9c, #00d68a);
+    color: #000;
+    border: none;
+    /* --- NEW: Give it a defined width now that it's alone --- */
+    width: 50%;
+    max-width: 300px;
+    min-width: 200px;
+  }
+  
+  .flip-btn:hover {
+    background: linear-gradient(90deg, #00d68a, #00ff9c);
+    color: #000;
+  }
+  
+  .no-cards {
+    text-align: center;
+    padding: 3rem;
+    color: #D6D9D8;
+  }

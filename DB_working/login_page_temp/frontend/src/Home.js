@@ -18,6 +18,7 @@ function Home() {
   const [summaryContent, setSummaryContent] = useState(null);
   const [currentView, setCurrentView] = useState('projects');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [askFromSelection, setAskFromSelection] = useState(null);
   
   // --- Roadmap State (Managed by Home) ---
   const [projects, setProjects] = useState([]);
@@ -169,6 +170,8 @@ function Home() {
   };
 
   const handleLogout = () => {
+    // Dispatch event to clear chatbot memory
+    window.dispatchEvent(new CustomEvent('userLogout'));
     localStorage.removeItem("token");
     localStorage.removeItem("user"); // Also clear stored user
     window.location.href = "/login";
@@ -183,6 +186,18 @@ function Home() {
     setSummaryContent(content);
     setCurrentView('summary'); // Switch view to summary
   };
+
+  // Handle Ask Xiao from text selection
+  useEffect(() => {
+    const handleAskXiaoEvent = (event) => {
+      setAskFromSelection(event.detail);
+      // Reset after a moment to allow re-triggering
+      setTimeout(() => setAskFromSelection(null), 100);
+    };
+    
+    window.addEventListener('askXiao', handleAskXiaoEvent);
+    return () => window.removeEventListener('askXiao', handleAskXiaoEvent);
+  }, []);
 
   // --- Derived State ---
   const activeProject = projects.find(p => p.id === activeProjectId);
@@ -238,7 +253,7 @@ function Home() {
       </div>
 
       {/* Chatbot is now self-contained and just needs one prop */}
-      <Chatbot onSummaryGenerated={handleSummaryGenerated} />
+      <Chatbot onSummaryGenerated={handleSummaryGenerated} onAskFromSelection={askFromSelection} />
     </>
   );
 }

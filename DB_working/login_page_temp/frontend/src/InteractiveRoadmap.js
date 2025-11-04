@@ -1,7 +1,23 @@
 // src/InteractiveRoadmap.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useTextSelection from './components/TextSelection';
 import './styles/Roadmap.css';
+
+// Text selection wrapper component for roadmap
+const TextSelectionWrapper = ({ children }) => {
+  const handleAskXiao = (selectedText) => {
+    window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
+  };
+  const { AskButton } = useTextSelection(handleAskXiao, true);
+  
+  return (
+    <div style={{ position: 'relative' }}>
+      {AskButton}
+      {children}
+    </div>
+  );
+};
 
 // Component for displaying sub-details when a study item is clicked
 function StudyItemDetail({ term, context, onBack }) {
@@ -103,7 +119,7 @@ function StudyItemDetail({ term, context, onBack }) {
   }
 
   return (
-    <div className="study-item-detail-display">
+    <div className="study-item-detail-display" data-selectable>
       {isLoading && (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <p className="loading-text">Generating details...</p>
@@ -115,7 +131,7 @@ function StudyItemDetail({ term, context, onBack }) {
           <p className="error-text">{error}</p>
         </div>
       )}
-      {!isLoading && !error && subDetails && <div dangerouslySetInnerHTML={{ __html: subDetails }} />}
+      {!isLoading && !error && subDetails && <div dangerouslySetInnerHTML={{ __html: subDetails }} data-selectable />}
       {!isLoading && !error && !subDetails && (
         <p className="placeholder-text">Select a topic from the left to view details.</p>
       )}
@@ -190,10 +206,12 @@ function DetailView({ topicTitle, details, onBack, mainTopic }) {
           ))}
         </div>
         
-        <StudyItemDetail 
-          term={selectedTerm} 
-          context={mainTopic}
-        />
+        <TextSelectionWrapper>
+          <StudyItemDetail 
+            term={selectedTerm} 
+            context={mainTopic}
+          />
+        </TextSelectionWrapper>
       </div>
     </div>
   );

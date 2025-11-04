@@ -72,12 +72,26 @@
   box-shadow: 0 0 12px rgba(0, 255, 156, 0.6);
 }
 
-/* Styles for Pomodoro icon, which you can add to Header.module.css */
-.pomodoro-icon {
-  display: 'inline-block';
-  margin-right: 16px;
-  cursor: 'pointer';
+/* Styles for Pomodoro button */
+.pomodoro-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(14, 25, 27, 0.6);
+  color: #00ff9c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: 1px solid rgba(0, 255, 156, 0.2);
   font-size: 22px;
-  user-select: 'none';
-  vertical-align: 'middle';
+  margin-right: 15px;
+  box-shadow: 0 0 6px rgba(0, 255, 156, 0.25);
+  transition: all 0.3s ease;
+}
+
+.pomodoro-btn:hover {
+  background: rgba(0, 255, 156, 0.1);
+  box-shadow: 0 0 10px rgba(0, 255, 156, 0.35);
+  transform: scale(1.05);
 }

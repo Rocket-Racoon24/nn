@@ -1,7 +1,24 @@
 // src/components/SummaryView.js
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import useTextSelection from './TextSelection';
+import FlashcardView from './FlashcardView';
 import styles from './SummaryView.module.css';
+
+// Text selection wrapper component
+const TextSelectionWrapper = ({ children }) => {
+  const handleAskXiao = (selectedText) => {
+    window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
+  };
+  const { AskButton } = useTextSelection(handleAskXiao, true);
+  
+  return (
+    <div style={{ position: 'relative' }}>
+      {AskButton}
+      {children}
+    </div>
+  );
+};
 
 const SummaryView = ({ summaryContent, onBack }) => {
   const [pdfSummaries, setPdfSummaries] = useState([]);
@@ -11,6 +28,9 @@ const SummaryView = ({ summaryContent, onBack }) => {
   const [loadingSummaries, setLoadingSummaries] = useState({});
   const [error, setError] = useState(null);
   const [openMenu, setOpenMenu] = useState(null); // Track which tab's menu is open
+  const [showFlashcards, setShowFlashcards] = useState(false);
+  const [flashcards, setFlashcards] = useState([]);
+  const [loadingFlashcards, setLoadingFlashcards] = useState(false);
   const menuRefs = useRef({});
 
   // Fetch list of PDF summaries when component loads
@@ -159,6 +179,66 @@ const SummaryView = ({ summaryContent, onBack }) => {
     setOpenMenu(openMenu === pdfName ? null : pdfName);
   };
 
+  // Handle flashcard generation
+  const handleGenerateFlashcards = async (pdfName, e) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setLoadingFlashcards(true);
+    setError(null);
+
+    try {
+      // First check if flashcards already exist
+      const encodedPdfName = encodeURIComponent(pdfName);
+      const checkRes = await fetch(`http://localhost:5000/get_flashcards/${encodedPdfName}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData.flashcards && checkData.flashcards.length > 0) {
+          setFlashcards(checkData.flashcards);
+          setShowFlashcards(true);
+          setOpenMenu(null);
+          setLoadingFlashcards(false);
+          return;
+        }
+      }
+
+      // Generate new flashcards
+      const res = await fetch(`http://localhost:5000/generate_flashcards/${encodedPdfName}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setFlashcards(data.flashcards || []);
+        setShowFlashcards(true);
+        setOpenMenu(null);
+      } else {
+        const errorData = await res.json();
+        if (res.status === 503) {
+          setError("AI is offline. Please start the LLM server on port 8080 and try again.");
+        } else {
+          setError(errorData.error || "Failed to generate flashcards");
+        }
+      }
+    } catch (err) {
+      console.error("Error generating flashcards:", err);
+      setError("Error generating flashcards");
+    } finally {
+      setLoadingFlashcards(false);
+    }
+  };
+
   // Handle delete
   const handleDelete = async (pdfName, e) => {
     e.stopPropagation();
@@ -240,12 +320,28 @@ const SummaryView = ({ summaryContent, onBack }) => {
     return null;
   };
 
+  // Show flashcards view if active
+  if (showFlashcards) {
+    return (
+      <FlashcardView 
+        flashcards={flashcards} 
+        onBack={() => setShowFlashcards(false)} 
+      />
+    );
+  }
+
   // Show tabs interface
   return (
     <div className={styles['summary-view']}>
       <button className={styles['back-btn']} onClick={onBack}>
         &larr; Back to Projects
       </button>
+      
+      {loadingFlashcards && (
+        <div className={styles['loading-overlay']}>
+          <p className={styles['loading']}>Generating flashcards...</p>
+        </div>
+      )}
       
       {loading && pdfSummaries.length === 0 ? (
         <p className={styles['loading']}>Loading PDF summaries...</p>
@@ -289,6 +385,12 @@ const SummaryView = ({ summaryContent, onBack }) => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
+                        className={styles['flashcard-button']}
+                        onClick={(e) => handleGenerateFlashcards(pdf.pdf_name, e)}
+                      >
+                        📚 Flashcards
+                      </button>
+                      <button
                         className={styles['delete-button']}
                         onClick={(e) => handleDelete(pdf.pdf_name, e)}
                       >
@@ -309,11 +411,15 @@ const SummaryView = ({ summaryContent, onBack }) => {
               <p className={styles['loading']}>Loading summary...</p>
             </div>
           ) : (
-            <div className={styles['summary-content-box']}>
+            <div className={styles['summary-content-box']} style={{ position: 'relative' }}>
               {getCurrentSummary() ? (
-                <div className={styles['markdown-content']}>
-                  <ReactMarkdown>{getCurrentSummary()}</ReactMarkdown>
-                </div>
+                <>
+                  <TextSelectionWrapper>
+                    <div className={styles['markdown-content']} data-selectable>
+                      <ReactMarkdown>{getCurrentSummary()}</ReactMarkdown>
+                    </div>
+                  </TextSelectionWrapper>
+                </>
               ) : (
                 <p className={styles['loading']}>No summary available for this PDF.</p>
               )}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './Chatbot.module.css'; // You will need to create Chatbot.module.css
 
-const Chatbot = ({ onSummaryGenerated }) => {
+const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
   // All chatbot state is now local to this component
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
@@ -12,6 +12,43 @@ const Chatbot = ({ onSummaryGenerated }) => {
   const fileInputRef = useRef(null);
   const chatbotBodyRef = useRef(null);
 
+  // Load chat memory from localStorage on mount
+  useEffect(() => {
+    const savedMemory = localStorage.getItem('chatbot_memory');
+    if (savedMemory) {
+      try {
+        const memory = JSON.parse(savedMemory);
+        if (memory.messages && memory.messages.length > 0) {
+          setChatMessages(memory.messages);
+        }
+      } catch (e) {
+        console.error('Error loading chatbot memory:', e);
+      }
+    }
+  }, []);
+
+  // Save chat memory to localStorage whenever messages change
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      localStorage.setItem('chatbot_memory', JSON.stringify({
+        messages: chatMessages,
+        timestamp: Date.now()
+      }));
+    }
+  }, [chatMessages]);
+
+  // Clear memory on logout (listen for logout event)
+  useEffect(() => {
+    const handleLogout = () => {
+      localStorage.removeItem('chatbot_memory');
+      setChatMessages([]);
+    };
+    
+    // Listen for custom logout event
+    window.addEventListener('userLogout', handleLogout);
+    return () => window.removeEventListener('userLogout', handleLogout);
+  }, []);
+
   // This effect is also local
   useEffect(() => {
     if (chatbotBodyRef.current) {
@@ -19,24 +56,36 @@ const Chatbot = ({ onSummaryGenerated }) => {
     }
   }, [chatMessages]);
 
-  // All handlers are moved inside
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() && pdfFiles.length === 0) return;
-    const userMsgText = chatInput || (pdfFiles.length > 0 ? `${pdfFiles.length} file(s) attached` : "");
+  // Send message with optional text parameter (for text selection)
+  const handleSendMessageWithText = async (textToSend = null) => {
+    const messageText = textToSend || chatInput;
+    if (!messageText.trim() && pdfFiles.length === 0) return;
+    
+    const userMsgText = messageText || (pdfFiles.length > 0 ? `${pdfFiles.length} file(s) attached` : "");
     setChatMessages((prev) => [...prev, { sender: "user", text: userMsgText }]);
     
     const token = localStorage.getItem("token");
     const formData = new FormData();
-    formData.append("message", chatInput);
+    formData.append("message", messageText);
+    
+    // Get conversation history for context
+    const conversationHistory = chatMessages.slice(-10).map(msg => ({
+      role: msg.sender === 'user' ? 'user' : 'assistant',
+      content: msg.text
+    }));
+    formData.append("conversation_history", JSON.stringify(conversationHistory));
+    
     if (pdfFiles.length > 0) { for (const file of pdfFiles) { formData.append("files", file); } }
 
-    setChatInput("");
-    setPdfFiles([]);
-    setShowToolsMenu(false);
-    
-    // Reset file input to allow uploading again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (!textToSend) {
+      setChatInput("");
+      setPdfFiles([]);
+      setShowToolsMenu(false);
+      
+      // Reset file input to allow uploading again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
 
     try {
@@ -45,7 +94,15 @@ const Chatbot = ({ onSummaryGenerated }) => {
         headers: { Authorization: `Bearer ${token}` },
         body: formData 
       });
-      if (!res.ok) throw new Error("Failed to connect to chatbot");
+      if (!res.ok) {
+        const errorData = await res.json();
+        if (res.status === 503) {
+          setChatMessages((prev) => [...prev, { sender: "bot", text: "AI is offline. Please start the LLM server on port 8080 and try again." }]);
+        } else {
+          throw new Error(errorData.error || "Failed to connect to chatbot");
+        }
+        return;
+      }
       const data = await res.json();
       setChatMessages((prev) => [...prev, { sender: "bot", text: data.chat_reply }]);
       
@@ -56,9 +113,27 @@ const Chatbot = ({ onSummaryGenerated }) => {
         setShowChatbot(false); // Optionally close chatbot
       }
     } catch (err) {
-      setChatMessages((prev) => [...prev, { sender: "bot", text: "⚠️ Oops, AI connection failed." }]);
+      setChatMessages((prev) => [...prev, { sender: "bot", text: `⚠️ ${err.message || "Oops, AI connection failed."}` }]);
     }
   };
+
+  // All handlers are moved inside
+  const handleSendMessage = () => {
+    handleSendMessageWithText();
+  };
+
+  // Handle external ask from text selection
+  useEffect(() => {
+    if (onAskFromSelection) {
+      setShowChatbot(true);
+      setChatInput(onAskFromSelection);
+      // Auto-send after a brief delay
+      const timer = setTimeout(() => {
+        handleSendMessageWithText(onAskFromSelection);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [onAskFromSelection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileChange = (e) => { 
     setPdfFiles(prev => [...prev, ...e.target.files])

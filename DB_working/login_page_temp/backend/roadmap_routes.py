@@ -126,6 +126,9 @@ def generate_roadmap():
     topic = data.get('query')
     user_email = request.user['email']
     
+    # Let AI decide if the topic is valid - removed strict validation
+    # AI will handle topic validation in the prompt itself
+    
     try:
         prompt = create_roadmap_prompt(topic)
         response_str = get_local_llm_response(prompt)

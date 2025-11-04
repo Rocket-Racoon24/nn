@@ -363,3 +363,29 @@ class DatabaseOperations:
             {"user_email": user_email, "pdf_name": pdf_name}
         )
         return result.deleted_count > 0
+    
+    # --- Flashcards ---
+    @staticmethod
+    def save_flashcards(user_email, pdf_name, flashcards):
+        """Save flashcards for a PDF summary"""
+        flashcard_doc = {
+            "user_email": user_email,
+            "pdf_name": pdf_name,
+            "flashcards": flashcards,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        return pdf_summary_collection.update_one(
+            {"user_email": user_email, "pdf_name": pdf_name},
+            {"$set": {"flashcards": flashcards, "updated_at": datetime.now(timezone.utc)}},
+            upsert=False
+        )
+    
+    @staticmethod
+    def get_flashcards(user_email, pdf_name):
+        """Get flashcards for a PDF summary"""
+        pdf_summary = pdf_summary_collection.find_one(
+            {"user_email": user_email, "pdf_name": pdf_name},
+            {"_id": 0, "flashcards": 1}
+        )
+        return pdf_summary.get("flashcards", []) if pdf_summary else []
