@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 import json
 import re
-from utils import get_local_llm_response # <-- Import from our new utils file
+from utils import get_local_llm_response, LLMConnectionError # <-- Import from our new utils file
 from db_operations import (
     DatabaseOperations, roadmaps_collection, notes_collection, quizzes_collection,
     quiz_attempts_collection, quiz_status_collection, progress_collection
@@ -16,6 +16,14 @@ def create_roadmap_prompt(topic):
     return f"""
 ### INSTRUCTIONS ###
 You are an expert curriculum designer. Output ONLY a valid JSON array of objects for the topic. Each object must have "id", "title", and "description". Do not add any extra text. The response must start with '[' and end with ']'.
+
+Also, at the end of your response (after the JSON array), add a line with the corrected/proper topic name in this format:
+###CORRECTED_TOPIC###: [proper topic name]
+
+For example, if user types "clud computing", you should output:
+[{{...JSON array...}}]
+###CORRECTED_TOPIC###: Cloud Computing
+
 ### TASK ###
 **Topic:** "{topic}"
 """
@@ -122,31 +130,49 @@ def generate_roadmap():
         prompt = create_roadmap_prompt(topic)
         response_str = get_local_llm_response(prompt)
         
-        # Check if the response is an error message from the LLM server
-        if response_str.startswith("Error connecting to local LLM server"):
-            return jsonify({
-                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
-            }), 503
-        
         match = re.search(r'\[.*\]', response_str, re.DOTALL)
         if not match:
             raise ValueError("Could not find valid JSON array in LLM response")
         roadmap = json.loads(match.group(0))
         
-        # Save roadmap to database
+        # Extract corrected topic name from the response
+        corrected_topic = topic  # Default to original
+        corrected_match = re.search(r'###CORRECTED_TOPIC###:\s*(.+)', response_str, re.IGNORECASE)
+        if corrected_match:
+            corrected_topic = corrected_match.group(1).strip()
+        elif roadmap and len(roadmap) > 0:
+            # Fallback: try to infer from first topic title
+            first_title = roadmap[0].get('title', '')
+            if first_title and len(first_title) < 50:  # Reasonable topic name length
+                corrected_topic = first_title
+        
+        # Save roadmap to database with corrected topic name
         roadmap_data = {
             'topics': roadmap,
             'generated_at': DatabaseOperations.get_current_timestamp()
         }
         
-        # Check if roadmap already exists for this topic
+        # Check if roadmap already exists for this topic (by original or corrected)
         existing_roadmap = DatabaseOperations.get_roadmap_by_topic(user_email, topic)
-        if existing_roadmap:
-            DatabaseOperations.update_roadmap(user_email, topic, roadmap_data)
-        else:
-            DatabaseOperations.save_roadmap(user_email, topic, roadmap_data)
+        if not existing_roadmap:
+            existing_roadmap = DatabaseOperations.get_roadmap_by_topic(user_email, corrected_topic)
         
-        return jsonify({"topics": roadmap})
+        if existing_roadmap:
+            # Update existing roadmap with new data and corrected topic
+            DatabaseOperations.update_roadmap(user_email, existing_roadmap.get('topic', topic), roadmap_data)
+            # If topic changed, also update the topic field
+            if existing_roadmap.get('topic') != corrected_topic:
+                from db_operations import roadmaps_collection
+                roadmaps_collection.update_one(
+                    {"user_email": user_email, "topic": existing_roadmap.get('topic', topic)},
+                    {"$set": {"topic": corrected_topic}}
+                )
+        else:
+            DatabaseOperations.save_roadmap(user_email, corrected_topic, roadmap_data)
+        
+        return jsonify({"topics": roadmap, "topic": corrected_topic})
+    except LLMConnectionError as e:
+        return jsonify({"error": str(e)}), 503
     except Exception as e:
         return jsonify({"error": f"An error occurred while parsing the roadmap: {str(e)}"}), 500
 
@@ -160,12 +186,6 @@ def generate_details():
     try:
         prompt = create_details_prompt(title)
         response_str = get_local_llm_response(prompt)
-        
-        # Check if the response is an error message from the LLM server
-        if response_str.startswith("Error connecting to local LLM server"):
-            return jsonify({
-                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
-            }), 503
         
         match = re.search(r'\[.*\]', response_str, re.DOTALL)
         if not match:
@@ -182,6 +202,8 @@ def generate_details():
         )
         
         return jsonify({"details": details})
+    except LLMConnectionError as e:
+        return jsonify({"error": str(e)}), 503
     except Exception as e:
         return jsonify({"error": f"An error occurred while parsing details: {str(e)}"}), 500
 
@@ -197,22 +219,15 @@ def generate_sub_details():
         prompt = create_sub_details_prompt(term, context)
         sub_details = get_local_llm_response(prompt)
 
-        # Check if the response is an error message from the LLM server
-        if sub_details.startswith("Error connecting to local LLM server"):
-            return jsonify({
-                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
-            }), 503
-
-        # --- ADD THIS CLEANING LOGIC ---
+        # Clean the HTML response
         sub_details = sub_details.strip()
         if sub_details.startswith("```html"):
             sub_details = sub_details[7:]
         if sub_details.endswith("```"):
             sub_details = sub_details[:-3]
         sub_details = sub_details.strip()
-        # -----------------------------
 
-        # Save sub_details to notes collection
+        # Save sub_details to notes collection (only if not an error)
         DatabaseOperations.save_note(
             user_email, 
             context, 
@@ -222,6 +237,8 @@ def generate_sub_details():
         )
 
         return jsonify({"sub_details": sub_details})
+    except LLMConnectionError as e:
+        return jsonify({"error": str(e)}), 503
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
@@ -241,12 +258,6 @@ def generate_quiz():
         # Pass all three arguments to the prompt function
         prompt = create_quiz_prompt(topic, num_questions, quiz_type)
         response_str = get_local_llm_response(prompt)
-        
-        # Check if the response is an error message from the LLM server
-        if response_str.startswith("Error connecting to local LLM server"):
-            return jsonify({
-                "error": "Local LLM server is not running. Please start the LLM server on port 8080 and try again."
-            }), 503
         
         # Clean the response - remove markdown code blocks if present
         response_str = response_str.strip()
@@ -315,6 +326,8 @@ def generate_quiz():
         )
         
         return jsonify(quiz_data)
+    except LLMConnectionError as e:
+        return jsonify({"error": str(e)}), 503
     except json.JSONDecodeError as e:
         response_preview = response_str[:500] if 'response_str' in locals() else "Response not available"
         return jsonify({"error": f"Failed to parse JSON from LLM response: {str(e)}. Response preview: {response_preview}"}), 500

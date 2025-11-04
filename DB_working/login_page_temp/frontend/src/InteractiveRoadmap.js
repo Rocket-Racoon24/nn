@@ -13,6 +13,7 @@ function StudyItemDetail({ term, context, onBack }) {
     const fetchSubDetails = async () => {
       setIsLoading(true);
       setError('');
+      setSubDetails(null); // Clear previous content when loading
       try {
         const token = localStorage.getItem('token');
         
@@ -44,7 +45,14 @@ function StudyItemDetail({ term, context, onBack }) {
           body: JSON.stringify({ term, context }),
         });
         
-        if (!response.ok) throw new Error((await response.json()).error);
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 503) {
+            throw new Error("AI is offline. Please start the LLM server on port 8080 and try again.");
+          } else {
+            throw new Error(errorData.error || "Failed to generate sub-details");
+          }
+        }
         const data = await response.json();
         
         // Clean the HTML response
@@ -96,9 +104,21 @@ function StudyItemDetail({ term, context, onBack }) {
 
   return (
     <div className="study-item-detail-display">
-      {isLoading && <p className="loading-text">Generating details...</p>}
-      {error && <p className="error-text">{error}</p>}
-      {subDetails && <div dangerouslySetInnerHTML={{ __html: subDetails }} />}
+      {isLoading && (
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p className="loading-text">Generating details...</p>
+          <div style={{ marginTop: '1rem' }}>⏳</div>
+        </div>
+      )}
+      {error && !isLoading && (
+        <div style={{ padding: '1rem', color: '#ef4444', textAlign: 'center' }}>
+          <p className="error-text">{error}</p>
+        </div>
+      )}
+      {!isLoading && !error && subDetails && <div dangerouslySetInnerHTML={{ __html: subDetails }} />}
+      {!isLoading && !error && !subDetails && (
+        <p className="placeholder-text">Select a topic from the left to view details.</p>
+      )}
     </div>
   );
 }
@@ -278,7 +298,14 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
           body: JSON.stringify({ title: topic.title }),
         });
         
-        if (!response.ok) throw new Error((await response.json()).error);
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 503) {
+            throw new Error("AI is offline. Please start the LLM server on port 8080 and try again.");
+          } else {
+            throw new Error(errorData.error || "Failed to generate details");
+          }
+        }
         const data = await response.json();
         details = data.details;
       }

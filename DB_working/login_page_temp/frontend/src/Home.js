@@ -108,7 +108,9 @@ function Home() {
   // --- Event Handlers (Passed as Props) ---
   const handleRoadmapGenerated = (newRoadmap) => {
     setProjects(prevProjects => {
-      const existingIndex = prevProjects.findIndex(p => p.topic === newRoadmap.topic);
+      // Use the topic from newRoadmap (which should be the corrected topic from backend)
+      const correctedTopic = newRoadmap.topic;
+      const existingIndex = prevProjects.findIndex(p => p.topic === correctedTopic || p.topic === newRoadmap.originalTopic);
       const project = { ...newRoadmap, id: Date.now() };
       
       if (existingIndex >= 0) {
@@ -124,6 +126,11 @@ function Home() {
   const handleNewProject = () => {
     setCurrentView('projects');
     setActiveProjectId(null);
+  };
+
+  const handleSelectProject = (projectId) => {
+    setActiveProjectId(projectId);
+    setCurrentView('projects'); // Always switch to projects view when selecting a roadmap
   };
 
   const handleDeleteProject = async (topic) => {
@@ -188,7 +195,7 @@ function Home() {
           onToggle={() => setIsSidebarOpen(prev => !prev)}
           projects={projects}
           activeProjectId={activeProjectId}
-          onSelectProject={setActiveProjectId}
+          onSelectProject={handleSelectProject}
           onNewProject={handleNewProject}
           onDeleteProject={handleDeleteProject}
         />

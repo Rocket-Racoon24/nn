@@ -22,15 +22,30 @@ function RoadmapGenerator({ onRoadmapGenerated }) { // Receives a function as a 
         },
         body: JSON.stringify({ query }),
       });
-      if (!response.ok) throw new Error((await response.json()).error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 503) {
+          setError("AI is offline. Please start the LLM server on port 8080 and try again.");
+        } else {
+          setError(errorData.error || "Failed to generate roadmap");
+        }
+        return;
+      }
       const data = await response.json();
 
+      // Use corrected topic from backend if available, otherwise use original query
+      const correctedTopic = data.topic || query;
+      
       // --- KEY CHANGE: Instead of setting local state, call the function from Home.js ---
-      onRoadmapGenerated({ topic: query, topics: data.topics });
+      onRoadmapGenerated({ topic: correctedTopic, topics: data.topics });
 
       setQuery('');
     } catch (err) {
-      setError(err.message);
+      if (err.message.includes("offline") || err.message.includes("503")) {
+        setError("AI is offline. Please start the LLM server on port 8080 and try again.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setIsLoading(false);
     }

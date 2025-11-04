@@ -1,7 +1,7 @@
 # chatbot_routes.py
 from flask import Blueprint, request, jsonify, session
 import PyPDF2
-from utils import get_local_llm_response
+from utils import get_local_llm_response, LLMConnectionError
 from db_operations import DatabaseOperations
 from auth_routes import token_required
 
@@ -143,8 +143,10 @@ def ask_ai():
             summary_content = None
         
         return jsonify({"chat_reply": chat_reply, "summary_content": summary_content})
+    except LLMConnectionError as e:
+        return jsonify({"chat_reply": "AI is offline. Please start the LLM server on port 8080 and try again.", "summary_content": None}), 503
     except Exception as e:
-        return jsonify({"chat_reply": f"An error occurred: {str(e)}", "summary_content": None})
+        return jsonify({"chat_reply": f"An error occurred: {str(e)}", "summary_content": None}), 500
 
 @chatbot_bp.route("/clear", methods=["POST"])
 @token_required
