@@ -279,13 +279,36 @@ def generate_quiz():
         if not isinstance(quiz_data['questions'], list):
             raise ValueError("'questions' must be an array")
         
-        # Save quiz to notes collection
+        # Normalize questions (ensure required fields for evaluation)
+        normalized_questions = []
+        for idx, q in enumerate(quiz_data['questions']):
+            nq = {
+                "id": idx + 1,
+                "type": q.get("type", "mcq"),
+                "question": q.get("question", ""),
+                "options": q.get("options") if q.get("type") == "mcq" else None,
+                "answer": q.get("answer") if q.get("type") == "mcq" else None,
+                "ideal_answer": q.get("ideal_answer") if q.get("type") == "descriptive" else None,
+            }
+            normalized_questions.append(nq)
+
+        # Save quiz to notes collection (raw)
         DatabaseOperations.save_note(
-            user_email, 
-            topic, 
-            "quiz", 
+            user_email,
+            topic,
+            "quiz",
             quiz_data,
             {"generated_at": DatabaseOperations.get_current_timestamp(), "quiz_type": quiz_type, "num_questions": num_questions}
+        )
+
+        # Save/Upsert normalized quiz to dedicated collection for evaluation reuse
+        DatabaseOperations.save_quiz(
+            user_email=user_email,
+            topic=topic,
+            quiz_type=quiz_type,
+            num_questions=num_questions,
+            questions=normalized_questions,
+            metadata={"generated_at": DatabaseOperations.get_current_timestamp()}
         )
         
         return jsonify(quiz_data)
@@ -324,6 +347,97 @@ def get_notes():
     
     notes = DatabaseOperations.get_user_notes(user_email, topic, note_type)
     return jsonify({"notes": notes}), 200
+
+# --- Save quiz attempt (client-side evaluated) ---
+@roadmap_bp.route("/save_quiz_attempt", methods=["POST"])
+@token_required
+def save_quiz_attempt():
+    data = request.get_json()
+    user_email = request.user['email']
+
+    topic = data.get('topic')
+    quiz_type = data.get('quiz_type')  # "MCQ", "Descriptive", or "Both"
+    practice = bool(data.get('practice', False))
+    questions_snapshot = data.get('questions')  # exact questions shown to user
+    user_answers = data.get('user_answers')    # array of answers aligned with questions
+    scores = data.get('scores')                # {mcqScore, mcqTotal, descriptiveScore, descriptiveTotal, finalScore, finalTotal}
+    passed = bool(data.get('passed', False))
+
+    if not topic or not quiz_type or not isinstance(questions_snapshot, list) or not isinstance(user_answers, list) or not isinstance(scores, dict):
+        return jsonify({"error": "Invalid payload"}), 400
+
+    try:
+        # Skip saving attempts for practice quizzes
+        if practice:
+            return jsonify({"message": "Practice attempt ignored"}), 200
+
+        # Save attempt
+        DatabaseOperations.save_quiz_attempt(
+            user_email=user_email,
+            topic=topic,
+            quiz_type=quiz_type,
+            questions_snapshot=questions_snapshot,
+            user_answers=user_answers,
+            scores=scores,
+            passed=passed,
+            practice=False,
+        )
+
+        # Update status for mandatory quizzes
+        if quiz_type in ("MCQ", "Descriptive"):
+            DatabaseOperations.set_quiz_status(user_email, topic, quiz_type, passed)
+
+        return jsonify({"message": "Quiz attempt saved"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to save quiz attempt: {str(e)}"}), 500
+
+# --- Get quizzes saved for the user ---
+@roadmap_bp.route("/get_quizzes", methods=["GET"])
+@token_required
+def get_quizzes():
+    user_email = request.user['email']
+    topic = request.args.get('topic')
+    quiz_type = request.args.get('quiz_type')
+    quizzes = DatabaseOperations.get_user_quizzes(user_email, topic, quiz_type)
+    return jsonify({"quizzes": quizzes}), 200
+
+# --- Get quiz attempts ---
+@roadmap_bp.route("/get_quiz_attempts", methods=["GET"])
+@token_required
+def get_quiz_attempts():
+    user_email = request.user['email']
+    topic = request.args.get('topic')
+    quiz_type = request.args.get('quiz_type')
+    attempts = DatabaseOperations.get_quiz_attempts(user_email, topic, quiz_type)
+    return jsonify({"attempts": attempts}), 200
+
+# --- Quiz status APIs ---
+@roadmap_bp.route("/set_quiz_status", methods=["POST"])
+@token_required
+def set_quiz_status():
+    data = request.get_json()
+    user_email = request.user['email']
+    topic = data.get('topic')
+    quiz_type = data.get('quiz_type')
+    passed = data.get('passed')
+    if not topic or quiz_type not in ("MCQ", "Descriptive") or passed is None:
+        return jsonify({"error": "Invalid payload"}), 400
+    try:
+        DatabaseOperations.set_quiz_status(user_email, topic, quiz_type, bool(passed))
+        return jsonify({"message": "Status saved"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to save status: {str(e)}"}), 500
+
+@roadmap_bp.route("/get_quiz_status", methods=["GET"])
+@token_required
+def get_quiz_status():
+    user_email = request.user['email']
+    topic = request.args.get('topic')
+    try:
+        status = DatabaseOperations.get_quiz_status(user_email, topic)
+        return jsonify({"status": status}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to get status: {str(e)}"}), 500
 
 def create_analysis_prompt(answers_to_grade):
     # Convert the list of answers into a string for the prompt

@@ -18,6 +18,11 @@ sessions_collection = db.sessions
 roadmaps_collection = db.roadmaps
 chat_history_collection = db.chat_history
 notes_collection = db.notes
+quizzes_collection = db.quizzes
+quiz_attempts_collection = db.quiz_attempts
+quiz_status_collection = db.quiz_status
+quizzes_collection = db.quizzes
+quiz_attempts_collection = db.quiz_attempts
 
 class DatabaseOperations:
     @staticmethod
@@ -182,10 +187,88 @@ class DatabaseOperations:
         roadmaps = DatabaseOperations.get_user_roadmaps(user_email)
         chat_history = DatabaseOperations.get_user_chat_history(user_email)
         notes = DatabaseOperations.get_user_notes(user_email)
+        quizzes = DatabaseOperations.get_user_quizzes(user_email)
+        attempts = DatabaseOperations.get_quiz_attempts(user_email)
+        status = DatabaseOperations.get_quiz_status(user_email)
         
         return {
             "session": session,
             "roadmaps": roadmaps,
             "chat_history": chat_history,
-            "notes": notes
+            "notes": notes,
+            "quizzes": quizzes,
+            "quiz_attempts": attempts,
+            "quiz_status": status
         }
+
+    # --- Quizzes (Definitions) ---
+    @staticmethod
+    def save_quiz(user_email, topic, quiz_type, num_questions, questions, metadata=None):
+        """Save or update a quiz definition for a user/topic/quiz_type."""
+        doc = {
+            "user_email": user_email,
+            "topic": topic,
+            "quiz_type": quiz_type,
+            "num_questions": num_questions,
+            "questions": questions,
+            "metadata": metadata or {},
+            "updated_at": datetime.now(timezone.utc)
+        }
+        quizzes_collection.update_one(
+            {"user_email": user_email, "topic": topic, "quiz_type": quiz_type},
+            {"$set": doc, "$setOnInsert": {"created_at": datetime.now(timezone.utc)}},
+            upsert=True
+        )
+
+    @staticmethod
+    def get_user_quizzes(user_email, topic=None, quiz_type=None):
+        query = {"user_email": user_email}
+        if topic:
+            query["topic"] = topic
+        if quiz_type:
+            query["quiz_type"] = quiz_type
+        return list(quizzes_collection.find(query, {"_id": 0}).sort("updated_at", -1))
+
+    # --- Quiz Attempts (Submissions) ---
+    @staticmethod
+    def save_quiz_attempt(user_email, topic, quiz_type, questions_snapshot, user_answers, scores, passed, practice=False):
+        """Store a user's quiz attempt with necessary data for evaluation/review."""
+        attempt_doc = {
+            "user_email": user_email,
+            "topic": topic,
+            "quiz_type": quiz_type,
+            "practice": practice,
+            "questions_snapshot": questions_snapshot,  # store the exact questions used
+            "user_answers": user_answers,              # array aligned with questions
+            "scores": scores,                          # {mcqScore, mcqTotal, descriptiveScore, descriptiveTotal, finalScore, finalTotal}
+            "passed": passed,
+            "created_at": datetime.now(timezone.utc)
+        }
+        return quiz_attempts_collection.insert_one(attempt_doc)
+
+    @staticmethod
+    def get_quiz_attempts(user_email, topic=None, quiz_type=None, limit=50):
+        query = {"user_email": user_email}
+        if topic:
+            query["topic"] = topic
+        if quiz_type:
+            query["quiz_type"] = quiz_type
+        return list(quiz_attempts_collection.find(query, {"_id": 0}).sort("created_at", -1).limit(limit))
+
+    # --- Quiz Status (Progress) ---
+    @staticmethod
+    def set_quiz_status(user_email, topic, quiz_type, passed):
+        """Save pass/fail status for mandatory quizzes. quiz_type: "MCQ" or "Descriptive"""
+        field = "mcqPassed" if quiz_type.upper() == "MCQ" else "descriptivePassed"
+        quiz_status_collection.update_one(
+            {"user_email": user_email, "topic": topic},
+            {"$set": {field: bool(passed), "updated_at": datetime.now(timezone.utc)}, "$setOnInsert": {"created_at": datetime.now(timezone.utc)}},
+            upsert=True
+        )
+
+    @staticmethod
+    def get_quiz_status(user_email, topic=None):
+        query = {"user_email": user_email}
+        if topic:
+            query["topic"] = topic
+        return list(quiz_status_collection.find(query, {"_id": 0}).sort("updated_at", -1))

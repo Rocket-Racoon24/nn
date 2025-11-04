@@ -1,5 +1,5 @@
 // src/Quiz.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './styles/Quiz.css';
 
@@ -21,10 +21,30 @@ function Quiz() {
   const [descriptiveScore, setDescriptiveScore] = useState(0);
   const [descriptiveTotal, setDescriptiveTotal] = useState(0);
   const [feedback, setFeedback] = useState('');
+  const [lastUserAnswers, setLastUserAnswers] = useState([]);
   
   // Quiz completion status
   const [mcqPassed, setMcqPassed] = useState(false);
   const [descriptivePassed, setDescriptivePassed] = useState(false);
+
+  // Memoized loader to avoid hook dependency warnings
+  const loadQuizStatus = useCallback(async () => {
+    if (!topic || !mainTopic) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/get_quiz_status?topic=${encodeURIComponent(topic)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const status = Array.isArray(data.status) && data.status.length > 0 ? data.status[0] : {};
+        setMcqPassed(Boolean(status.mcqPassed));
+        setDescriptivePassed(Boolean(status.descriptivePassed));
+      }
+    } catch (err) {
+      console.error("Error loading quiz status:", err);
+    }
+  }, [topic, mainTopic]);
 
   useEffect(() => {
     const topicParam = searchParams.get('topic');
@@ -44,21 +64,9 @@ function Quiz() {
 
     // Load quiz completion status from localStorage
     loadQuizStatus();
-  }, [searchParams, topic, mainTopic]);
+  }, [searchParams, loadQuizStatus]);
 
-  const loadQuizStatus = () => {
-    if (!topic || !mainTopic) return;
-    
-    try {
-      const quizStatus = JSON.parse(localStorage.getItem('quizStatus')) || {};
-      const key = `${mainTopic}::${topic}`;
-      const status = quizStatus[key] || { mcqPassed: false, descriptivePassed: false };
-      setMcqPassed(status.mcqPassed || false);
-      setDescriptivePassed(status.descriptivePassed || false);
-    } catch (err) {
-      console.error("Error loading quiz status:", err);
-    }
-  };
+  
 
   const saveQuizStatus = (passed, quizType) => {
     if (!topic || !mainTopic) return;
@@ -219,16 +227,37 @@ function Quiz() {
       feedbackText = `MCQ: ${mcqScoreCount}/${mcqTotalCount}. `;
       feedbackText += passed ? "✓ Passed! (6/10 required)" : "✗ Failed! (Need 6/10 to pass)";
       
-      if (!practiceMode && passed) {
-        saveQuizStatus(true, 'mcq');
+      if (!practiceMode) {
+        // Save status to backend regardless of pass/fail
+        (async () => {
+          try {
+            const token = localStorage.getItem('token');
+            await fetch('http://localhost:5000/set_quiz_status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ topic, quiz_type: 'MCQ', passed })
+            });
+            loadQuizStatus();
+          } catch {}
+        })();
       }
     } else if (isDescriptive && descriptiveTotalCount > 0) {
       const passed = descriptiveScoreCount >= 6;
       feedbackText = `Descriptive: ${descriptiveScoreCount}/${descriptiveTotalCount}. `;
       feedbackText += passed ? "✓ Passed! (6/10 required)" : "✗ Failed! (Need 6/10 to pass)";
       
-      if (!practiceMode && passed) {
-        saveQuizStatus(true, 'descriptive');
+      if (!practiceMode) {
+        (async () => {
+          try {
+            const token = localStorage.getItem('token');
+            await fetch('http://localhost:5000/set_quiz_status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ topic, quiz_type: 'Descriptive', passed })
+            });
+            loadQuizStatus();
+          } catch {}
+        })();
       }
     } else if (currentQuizType === 'practice' && practiceQuizType === 'Both') {
       const finalScore = mcqScoreCount + descriptiveScoreCount;
@@ -244,6 +273,58 @@ function Quiz() {
     }
     
     setFeedback(feedbackText);
+
+    // Prepare and save attempt
+    const computedFinalScore = (isMCQ && !isDescriptive) ? mcqScoreCount : (isDescriptive && !isMCQ) ? descriptiveScoreCount : (mcqScoreCount + descriptiveScoreCount);
+    const computedFinalTotal = (isMCQ && !isDescriptive) ? mcqTotalCount : (isDescriptive && !isMCQ) ? descriptiveTotalCount : (mcqTotalCount + descriptiveTotalCount);
+
+    const passed = (isMCQ && !isDescriptive) ? (mcqScoreCount >= 6) : (isDescriptive && !isMCQ) ? (descriptiveScoreCount >= 6) : (computedFinalTotal > 0 ? ((computedFinalScore / computedFinalTotal) * 100) >= 60 : false);
+
+    const quizTypeForSave = (currentQuizType === 'practice') ? practiceQuizType : (currentQuizType === 'mcq' ? 'MCQ' : 'Descriptive');
+
+    const userAnswers = currentQuestions.map((q, index) => {
+      if (q.type === 'mcq') {
+        const selected = document.querySelector(`input[name="question-${index}"]:checked`);
+        return { type: 'mcq', answer: selected ? selected.value : null };
+      }
+      const textarea = document.getElementById(`answer-${index}`);
+      return { type: 'descriptive', answer: textarea ? textarea.value : '' };
+    });
+    setLastUserAnswers(userAnswers);
+
+    const scores = {
+      mcqScore: mcqScoreCount,
+      mcqTotal: mcqTotalCount,
+      descriptiveScore: descriptiveScoreCount,
+      descriptiveTotal: descriptiveTotalCount,
+      finalScore: computedFinalScore,
+      finalTotal: computedFinalTotal,
+    };
+
+    // Save attempt (mandatory only; backend ignores practice)
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        await fetch('http://localhost:5000/save_quiz_attempt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            topic,
+            quiz_type: quizTypeForSave,
+            practice: currentQuizType === 'practice',
+            questions: currentQuestions,
+            user_answers: userAnswers,
+            scores,
+            passed,
+          })
+        });
+      } catch (e) {
+        // no-op
+      }
+    })();
   };
 
   const handleRetakeQuiz = () => {
@@ -409,6 +490,39 @@ function Quiz() {
             </div>
           )}
           
+          {/* Detailed question review */}
+          <div className="results-detail">
+            {currentQuestions.map((q, index) => {
+              const ua = lastUserAnswers[index];
+              const userAns = ua ? ua.answer : null;
+              return (
+                <div key={index} className="question-item">
+                  <p><strong>{index + 1}.</strong> {q.question}</p>
+                  {q.type === 'mcq' ? (
+                    <ul>
+                      {q.options.map((opt, i) => {
+                        const isCorrect = opt === q.answer;
+                        const isUser = opt === userAns;
+                        return (
+                          <li key={i} style={{
+                            color: isCorrect ? '#00ff9c' : (isUser && !isCorrect ? '#e74c3c' : '#D6D9D8')
+                          }}>
+                            {opt} {isCorrect ? '✓' : ''} {isUser && !isCorrect ? '(your answer)' : ''}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <div>
+                      <p><strong>Your answer:</strong> {userAns || '(empty)'}</p>
+                      <p><strong>Ideal answer:</strong> {q.ideal_answer}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
           <div className="results-buttons">
             <button className="retake-quiz-button" onClick={handleRetakeQuiz}>
               {practiceMode ? 'Back to Quiz Selection' : 
