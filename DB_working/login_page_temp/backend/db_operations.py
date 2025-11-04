@@ -22,8 +22,7 @@ notes_collection = db.notes
 quizzes_collection = db.quizzes
 quiz_attempts_collection = db.quiz_attempts
 quiz_status_collection = db.quiz_status
-quizzes_collection = db.quizzes
-quiz_attempts_collection = db.quiz_attempts
+pdf_summary_collection = db.pdf_summary
 
 class DatabaseOperations:
     @staticmethod
@@ -324,3 +323,43 @@ class DatabaseOperations:
         if topic:
             query["topic"] = topic
         return list(quiz_status_collection.find(query, {"_id": 0}).sort("updated_at", -1))
+    
+    # --- PDF Summaries ---
+    @staticmethod
+    def save_pdf_summary(user_email, pdf_name, summary_content):
+        """Save PDF summary for a user"""
+        pdf_summary_doc = {
+            "user_email": user_email,
+            "pdf_name": pdf_name,
+            "summary_content": summary_content,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        return pdf_summary_collection.insert_one(pdf_summary_doc)
+    
+    @staticmethod
+    def get_user_pdf_summaries(user_email, include_content=False):
+        """Get all PDF summaries for a user. If include_content is False, only returns metadata."""
+        projection = {"_id": 0, "user_email": 1, "pdf_name": 1, "created_at": 1, "updated_at": 1}
+        if include_content:
+            projection["summary_content"] = 1
+        return list(pdf_summary_collection.find(
+            {"user_email": user_email},
+            projection
+        ).sort("created_at", -1))
+    
+    @staticmethod
+    def get_pdf_summary_by_name(user_email, pdf_name):
+        """Get specific PDF summary by PDF name"""
+        return pdf_summary_collection.find_one(
+            {"user_email": user_email, "pdf_name": pdf_name},
+            {"_id": 0}
+        )
+    
+    @staticmethod
+    def delete_pdf_summary(user_email, pdf_name):
+        """Delete a PDF summary for a user"""
+        result = pdf_summary_collection.delete_one(
+            {"user_email": user_email, "pdf_name": pdf_name}
+        )
+        return result.deleted_count > 0

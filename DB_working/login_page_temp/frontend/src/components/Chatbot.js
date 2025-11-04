@@ -8,7 +8,6 @@ const Chatbot = ({ onSummaryGenerated }) => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [pdfFiles, setPdfFiles] = useState([]);
-  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const fileInputRef = useRef(null);
   const chatbotBodyRef = useRef(null);
@@ -22,20 +21,23 @@ const Chatbot = ({ onSummaryGenerated }) => {
 
   // All handlers are moved inside
   const handleSendMessage = async () => {
-    if (!chatInput.trim() && pdfFiles.length === 0 && !youtubeUrl.trim()) return;
-    const userMsgText = chatInput || (pdfFiles.length > 0 ? `${pdfFiles.length} file(s) attached` : `URL: ${youtubeUrl}`);
+    if (!chatInput.trim() && pdfFiles.length === 0) return;
+    const userMsgText = chatInput || (pdfFiles.length > 0 ? `${pdfFiles.length} file(s) attached` : "");
     setChatMessages((prev) => [...prev, { sender: "user", text: userMsgText }]);
     
     const token = localStorage.getItem("token");
     const formData = new FormData();
     formData.append("message", chatInput);
     if (pdfFiles.length > 0) { for (const file of pdfFiles) { formData.append("files", file); } }
-    if (youtubeUrl) formData.append("youtube_url", youtubeUrl);
 
     setChatInput("");
     setPdfFiles([]);
-    setYoutubeUrl("");
     setShowToolsMenu(false);
+    
+    // Reset file input to allow uploading again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
 
     try {
       const res = await fetch("http://localhost:5000/ask", { 
@@ -80,7 +82,7 @@ const Chatbot = ({ onSummaryGenerated }) => {
                      </div>
                  ))}
              </div>
-             {(pdfFiles.length > 0 || youtubeUrl) && (
+             {pdfFiles.length > 0 && (
               <div className={styles['attachment-indicator']}>
                 {pdfFiles.map(file => (
                   <div key={file.name} className={styles['attachment-item']}>
@@ -90,7 +92,6 @@ const Chatbot = ({ onSummaryGenerated }) => {
                     </button>
                   </div>
                 ))}
-                {youtubeUrl && <p>🔗 YouTube URL attached</p>}
               </div>
             )}
             <div className={styles['chatbot-footer-container']}>
@@ -99,15 +100,6 @@ const Chatbot = ({ onSummaryGenerated }) => {
                   <label className={styles['tool-option']} onClick={() => fileInputRef.current.click()}>
                     📄 Upload PDF
                   </label>
-                  <div className={styles['tool-option-url']}>
-                    <span>🔗 YouTube URL</span>
-                    <input
-                      type="text"
-                      className={styles['url-input']}
-                      placeholder="Paste link and type a message..."
-                      onBlur={(e) => setYoutubeUrl(e.target.value)}
-                    />
-                  </div>
                 </div>
               )}
               <div className={styles['chatbot-footer']}>

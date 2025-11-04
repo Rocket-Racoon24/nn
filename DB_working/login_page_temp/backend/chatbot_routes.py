@@ -1,11 +1,7 @@
 # chatbot_routes.py
 from flask import Blueprint, request, jsonify, session
-import subprocess
-import os
-import re
-from urllib.parse import urlparse
 import PyPDF2
-from utils import get_local_llm_response # <-- Import from our new utils file
+from utils import get_local_llm_response
 from db_operations import DatabaseOperations
 from auth_routes import token_required
 
@@ -13,7 +9,6 @@ chatbot_bp = Blueprint('chatbot_bp', __name__)
 
 # --- Helper Functions (specific to chatbot) ---
 def extract_text_from_pdf(file_stream):
-    # ... (this function remains the same)
     try:
         reader = PyPDF2.PdfReader(file_stream)
         text = ""
@@ -23,38 +18,69 @@ def extract_text_from_pdf(file_stream):
     except Exception as e:
         return f"Error reading PDF: {e}"
 
-def get_transcript(video_url):
-    # ... (this function remains the same, but simplified for clarity)
-    try:
-        command = ["yt-dlp", "--write-auto-sub", "--sub-lang", "en", "--skip-download", "-o", "temp_transcript", video_url]
-        subprocess.run(command, check=True, capture_output=True, text=True, encoding='utf-8')
-        
-        transcript_filepath = None
-        for file in os.listdir('.'):
-            if file.startswith("temp_transcript") and file.endswith(".vtt"):
-                transcript_filepath = file
-                break
-        
-        if not transcript_filepath:
-            return "Error: Transcript file not found."
-
-        with open(transcript_filepath, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        os.remove(transcript_filepath) # Clean up
-
-        clean_lines = [re.sub(r'<[^>]+>', '', line).strip() for line in lines if not re.match(r'^\s*$', line) and '-->' not in line and 'WEBVTT' not in line]
-        return " ".join(dict.fromkeys(clean_lines))
-
-    except Exception as e:
-        return f"An error occurred with yt-dlp: {e}"
-
 def create_master_prompt(content_for_summary):
-    # ... (this function remains the same)
+    """
+    Creates an advanced, detailed prompt for a local AI to generate a high-quality, 
+    structured, and academically-focused summary from provided content.
+    """
+    
+    # The advanced prompt provides a role, goal, audience, specific content instructions,
+    # and a mandatory markdown format, which leads to superior results.
     return f"""
-### INSTRUCTIONS ###
-You are a knowledgeable expert. Take the provided content and create a detailed, readable summary using markdown.
-### TASK ###
-Create a detailed summary from the following content:
+# 📚 Expert Summary Generation Protocol
+
+## ROLE
+You are an expert **Academic Summarizer and Technical Writer**. Your task is to analyze the provided content (e.g., a textbook chapter, research paper, or technical document) and generate a **comprehensive, high-quality, and highly readable summary**. Your analysis must be deep, extracting core concepts, distinguishing key themes, and noting practical implications.
+
+## GOAL
+Produce a summary that is **superior in depth, clarity, and utility** to a basic auto-generated summary. The final output must serve as an excellent study guide, a quick reference for a professional, or a comprehensive overview for an instructor.
+
+## AUDIENCE
+The target audience is a **Graduate Student or a Mid-to-Senior Level Professional** in the field (e.g., Data Science, Software Engineering, etc.). Assume they have a foundational understanding but need a concise, detailed, and structured review of the document's most critical information.
+
+## INSTRUCTIONS FOR CONTENT AND TONE
+1.  **Prioritize Core Value:** Identify and extract the **most critical, non-obvious concepts** and the fundamental mathematical or algorithmic principles discussed. Do not waste space on overly generic filler text.
+2.  **Highlight Structure and Thesis:** The summary must clearly delineate the book's/document's overall **thesis, primary goal, and organizational structure**. Explain *why* the authors structured the material as they did.
+3.  **Use Active Synthesis:** Do not merely list section titles. Instead, synthesize the content under key thematic headings. For example, group related algorithms or principles together and explain their collective purpose.
+4.  **Define and Apply:** For every major concept (e.g., 'Bayes' Rule', 'Central Limit Theorem'), provide a **concise, technical definition** and a brief, real-world or theoretical **application/significance**.
+5.  **Maintain Professional Tone:** The tone should be **authoritative, clear, and objective**. Use technical vocabulary correctly and confidently.
+
+## MANDATORY MARKDOWN OUTPUT FORMAT
+Structure the summary using the following specific hierarchy. **Use bolding (`**...**`) judiciously for key terms.**
+
+---
+
+# Summary of "[Document Title or Source]" by [Author(s)]
+
+## 💡 Executive Summary & Document Thesis
+* A 2-3 sentence overview covering the document's central argument, scope, and target impact.
+
+## 🔑 Core Themes and Structural Blueprint
+* A bulleted list explaining the logical flow and main sections/parts of the document.
+
+---
+
+## 🔬 In-Depth Analysis: [Major Theme 1 - e.g., Foundations of Machine Learning]
+### [Sub-Concept A: The Theory - e.g., Probability Theory]
+* **Definition/Principle:** [Technical explanation of the concept.]
+* **Significance/Role:** [Why this concept is critical in the domain.]
+
+### [Sub-Concept B: The Application - e.g., Basic Algorithms]
+* **Key Algorithms/Methods:** A list of the central algorithms discussed.
+    * *Algorithm Name 1:* [Brief explanation and when to use it.]
+    * *Algorithm Name 2:* [Brief explanation and when to use it.]
+
+---
+
+## 📈 Broader Implications and Next Steps
+* **Practical Takeaways:** The 2-3 most valuable lessons for a practicing professional.
+* **Open Questions/Future Work (if applicable):** Note any limitations or areas the document suggests for future exploration.
+
+---
+
+**End of Summary.**
+
+### CONTENT TO BE SUMMARIZED ###
 {content_for_summary}
 """
 
@@ -77,23 +103,24 @@ def create_chat_prompt(user_message, bot_name="Xiao"):
 @token_required
 def ask_ai():
     user_message = request.form.get("message", "")
-    pdf_file = request.files.getlist("file")
-    youtube_url = request.form.get("youtube_url")
+    pdf_files = request.files.getlist("files")
     user_email = request.user['email']
 
-    if not user_message and not pdf_file and not youtube_url:
-        return jsonify({"chat_reply": "Please provide a message, file, or URL.", "summary_content": None})
+    if not user_message and not pdf_files:
+        return jsonify({"chat_reply": "Please provide a message or file.", "summary_content": None})
 
     context_text = ""
-    is_summarization_task = bool(pdf_file or youtube_url)
+    is_summarization_task = bool(pdf_files)
 
-    for pdf_file in pdf_file:
-        context_text += f"\n\n--- PDF Content ---\n{extract_text_from_pdf(pdf_file.stream)}"
-    if youtube_url:
-        transcript = get_transcript(youtube_url)
-        if "Error:" in transcript:
-            return jsonify({"chat_reply": transcript, "summary_content": None})
-        context_text += f"\n\n--- YouTube Transcript ---\n{transcript}"
+    # Process PDF files
+    pdf_names = []
+    for pdf_file in pdf_files:
+        pdf_name = pdf_file.filename
+        pdf_names.append(pdf_name)
+        pdf_text = extract_text_from_pdf(pdf_file.stream)
+        if "Error reading PDF" in pdf_text:
+            return jsonify({"chat_reply": pdf_text, "summary_content": None})
+        context_text += f"\n\n--- PDF Content ({pdf_name}) ---\n{pdf_text}"
 
     if is_summarization_task:
         final_prompt = create_master_prompt(f"{user_message}\n{context_text}")
@@ -107,11 +134,13 @@ def ask_ai():
         if is_summarization_task:
             chat_reply = "I've generated a summary of the content you provided."
             summary_content = ai_reply
-            # Chat messages are not stored by request
+            
+            # Save PDF summaries to database
+            for pdf_name in pdf_names:
+                DatabaseOperations.save_pdf_summary(user_email, pdf_name, summary_content)
         else:
             chat_reply = ai_reply
             summary_content = None
-            # Chat messages are not stored by request
         
         return jsonify({"chat_reply": chat_reply, "summary_content": summary_content})
     except Exception as e:
@@ -133,3 +162,33 @@ def get_chat_history():
     user_email = request.user['email']
     chat_history = DatabaseOperations.get_user_chat_history(user_email)
     return jsonify({"chat_history": chat_history}), 200
+
+# Route to get all PDF summaries for a user
+@chatbot_bp.route("/get_pdf_summaries", methods=["GET"])
+@token_required
+def get_pdf_summaries():
+    user_email = request.user['email']
+    pdf_summaries = DatabaseOperations.get_user_pdf_summaries(user_email)
+    return jsonify({"pdf_summaries": pdf_summaries}), 200
+
+# Route to get a specific PDF summary by PDF name
+@chatbot_bp.route("/get_pdf_summary/<pdf_name>", methods=["GET"])
+@token_required
+def get_pdf_summary(pdf_name):
+    user_email = request.user['email']
+    pdf_summary = DatabaseOperations.get_pdf_summary_by_name(user_email, pdf_name)
+    if pdf_summary:
+        return jsonify({"pdf_summary": pdf_summary}), 200
+    else:
+        return jsonify({"error": "PDF summary not found"}), 404
+
+# Route to delete a PDF summary
+@chatbot_bp.route("/delete_pdf_summary/<pdf_name>", methods=["DELETE"])
+@token_required
+def delete_pdf_summary(pdf_name):
+    user_email = request.user['email']
+    success = DatabaseOperations.delete_pdf_summary(user_email, pdf_name)
+    if success:
+        return jsonify({"status": "PDF summary deleted successfully"}), 200
+    else:
+        return jsonify({"error": "PDF summary not found"}), 404

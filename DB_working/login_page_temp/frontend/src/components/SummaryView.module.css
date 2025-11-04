@@ -14,37 +14,157 @@
 /* The rest of these styles are from Home.css */
 .summary-view {
   padding: 1rem;
+  background: transparent;
 }
 
 .back-btn {
-  background: #334155;
-  color: #f1f5f9;
-  border: 1px solid #64748b;
+  background: rgba(14, 25, 27, 0.6);
+  color: #D6D9D8;
+  border: 1px solid rgba(0, 255, 156, 0.2);
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
   margin-bottom: 20px;
+  transition: all 0.3s ease;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
 
 .back-btn:hover {
-  background: #475569;
+  background: rgba(0, 255, 156, 0.1);
+  color: #00ff9c;
+  border-color: rgba(0, 255, 156, 0.7);
+  box-shadow: 0 0 15px rgba(0, 255, 156, 0.3);
 }
 
 .summary-content-box {
-  background: #1e2b3b;
+  background: rgba(14, 25, 27, 0.6);
   padding: 20px;
   border-radius: 12px;
-  border: 1px solid #334155;
+  border: 1px solid rgba(0, 255, 156, 0.2);
+  max-height: 70vh;
+  overflow-y: auto;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 0 12px rgba(0, 255, 156, 0.08);
 }
 
-.summary-text {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  color: #cbd5e1;
-  font-family: 'Consolas', 'Menlo', monospace;
+.markdown-content {
+  color: #D6D9D8;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.8;
+}
+
+.markdown-content h1 {
+  color: #00ff9c;
+  font-size: 2em;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  border-bottom: 2px solid rgba(0, 255, 156, 0.3);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h2 {
+  color: #00ff9c;
+  font-size: 1.5em;
+  margin-top: 0.8em;
+  margin-bottom: 0.4em;
+  border-bottom: 1px solid rgba(0, 255, 156, 0.2);
+  padding-bottom: 0.2em;
+}
+
+.markdown-content h3 {
+  color: #00d68a;
+  font-size: 1.25em;
+  margin-top: 0.6em;
+  margin-bottom: 0.3em;
+}
+
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  color: #00d68a;
+  margin-top: 0.5em;
+  margin-bottom: 0.3em;
+}
+
+.markdown-content p {
+  margin-bottom: 1em;
+  color: #D6D9D8;
+}
+
+.markdown-content strong {
+  color: #00ff9c;
+  font-weight: bold;
+}
+
+.markdown-content em {
+  color: #00d68a;
+  font-style: italic;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+  color: #D6D9D8;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5em;
+}
+
+.markdown-content code {
+  background: rgba(0, 255, 156, 0.1);
+  color: #00ff9c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 0.9em;
+  border: 1px solid rgba(0, 255, 156, 0.2);
+}
+
+.markdown-content pre {
+  background: rgba(14, 25, 27, 0.8);
+  border: 1px solid rgba(0, 255, 156, 0.2);
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.markdown-content pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #D6D9D8;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #00ff9c;
+  padding-left: 1em;
+  margin-left: 0;
+  color: #D6D9D8;
+  font-style: italic;
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 2px solid rgba(0, 255, 156, 0.2);
+  margin: 2em 0;
+}
+
+.markdown-content a {
+  color: #00ff9c;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 255, 156, 0.3);
+  transition: all 0.3s ease;
+}
+
+.markdown-content a:hover {
+  color: #00d68a;
+  border-bottom-color: #00ff9c;
 }
 
 .no-summary-view {
@@ -53,21 +173,153 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: linear-gradient(to bottom right, #3b82f6, #8b5cf6, #4f46e5);
+  margin-top: 2rem;
+  padding: 2rem;
 }
 
 .no-summary-card {
   padding: 24px 32px;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
+  background: rgba(14, 25, 27, 0.6);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  color: white;
+  border: 1px solid rgba(0, 255, 156, 0.2);
+  box-shadow: 0 0 12px rgba(0, 255, 156, 0.08);
+  color: #D6D9D8;
 }
 
 .no-summary-card h1 {
   font-size: 1rem;
-  color: white;
+  color: #D6D9D8;
   font-weight: bold;
+}
+
+.tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid rgba(0, 255, 156, 0.2);
+  padding-bottom: 0.5rem;
+}
+
+.tab-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tab {
+  background: rgba(14, 25, 27, 0.6);
+  color: #D6D9D8;
+  border: 1px solid rgba(0, 255, 156, 0.2);
+  border-bottom: none;
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  word-break: break-word;
+  position: relative;
+  top: 2px;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+.tab:hover {
+  background: rgba(0, 255, 156, 0.1);
+  color: #00ff9c;
+  border-color: rgba(0, 255, 156, 0.4);
+}
+
+.tab-active {
+  background: rgba(14, 25, 27, 0.8);
+  color: #00ff9c;
+  border-color: #00ff9c;
+  border-bottom: 2px solid rgba(14, 25, 27, 0.8);
+  position: relative;
+  top: 0;
+  z-index: 1;
+  box-shadow: 0 0 12px rgba(0, 255, 156, 0.2);
+}
+
+.tab-active:hover {
+  background: rgba(14, 25, 27, 0.8);
+  color: #00ff9c;
+}
+
+.tab-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.menu-button {
+  background: transparent;
+  color: #D6D9D8;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.menu-button:hover {
+  background: rgba(0, 255, 156, 0.1);
+  color: #00ff9c;
+}
+
+.tab-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: rgba(14, 25, 27, 0.95);
+  border: 1px solid rgba(0, 255, 156, 0.3);
+  border-radius: 8px;
+  padding: 4px;
+  margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  min-width: 120px;
+}
+
+.delete-button {
+  width: 100%;
+  background: transparent;
+  color: #ef4444;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.delete-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ff6b6b;
+}
+
+.loading {
+  color: #D6D9D8;
+  padding: 1rem;
+  text-align: center;
+}
+
+.error {
+  color: #ef4444;
+  padding: 1rem;
+  text-align: center;
+  background: rgba(14, 25, 27, 0.6);
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
