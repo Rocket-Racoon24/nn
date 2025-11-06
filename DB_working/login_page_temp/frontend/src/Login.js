@@ -7,6 +7,7 @@
 import "./Login.css";
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
+import Toast from "./components/Toast";
 import { registerUser, verifyOtp, resendOtp } from "./api/authRegister";
 import { requestPasswordReset } from "./api/authForgot";
 
@@ -23,6 +24,7 @@ const Login = () => {
   const [otp, setOtp] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -101,14 +103,14 @@ const Login = () => {
         localStorage.setItem("user", JSON.stringify(data.user));
         navigate("/home", { replace: true });
       } else {
-        if (res.status === 403 && (data.message || "").toLowerCase().includes("verify")) {
-          alert(data.message);
-          // Route user straight to OTP verification flow using their login email
+        const message = data.message || "Login failed. Please try again.";
+        if (res.status === 403 && message.toLowerCase().includes("verify")) {
+          setToast({ message, type: "warning" });
           setRegisterEmail(email);
           setIsAwaitingOtp(true);
           setIsLogin(false);
         } else {
-          alert(data.message);
+          setToast({ message, type: "error" });
         }
       }
     } else {
@@ -116,9 +118,9 @@ const Login = () => {
         await registerUser({ username, email, password });
         setRegisterEmail(email);
         setIsAwaitingOtp(true);
-        alert("✅ Registered. Check your email for the OTP.");
+        setToast({ message: "Registered. Check your email for the OTP.", type: "success" });
       } catch (err) {
-        alert(err.message);
+        setToast({ message: err.message || "Registration failed.", type: "error" });
       }
     }
   };
@@ -127,13 +129,13 @@ const Login = () => {
     if (!otp || !registerEmail) return;
     try {
       await verifyOtp({ email: registerEmail, otp });
-      alert("✅ Email verified! You can now log in.");
+      setToast({ message: "Email verified! You can now log in.", type: "success" });
       setIsAwaitingOtp(false);
       setIsLogin(true);
       setOtp("");
     } catch (err) {
       console.error("verify-otp error:", err);
-      alert(err.message || "Failed to verify OTP");
+      setToast({ message: err.message || "Failed to verify OTP", type: "error" });
     }
   };
 
@@ -142,24 +144,24 @@ const Login = () => {
     if (resendCooldown > 0) return;
     try {
       await resendOtp({ email: registerEmail });
-      alert("📧 OTP resent to your email.");
+      setToast({ message: "OTP resent to your email.", type: "info" });
       setResendCooldown(60);
     } catch (err) {
       console.error("resend-otp error:", err);
-      alert(err.message || "Failed to resend OTP");
+      setToast({ message: err.message || "Failed to resend OTP", type: "error" });
     }
   };
 
   const handleForgotPassword = async () => {
     if (!email) {
-      alert("Enter your email above to receive a reset link.");
+      setToast({ message: "Enter your email above to receive a reset link.", type: "warning" });
       return;
     }
     try {
       await requestPasswordReset({ email });
-      alert("📬 Password reset email sent. Check your inbox.");
+      setToast({ message: "Password reset email sent. Check your inbox.", type: "success" });
     } catch (err) {
-      alert(err.message);
+      setToast({ message: err.message || "Failed to send reset link.", type: "error" });
     }
   };
 
@@ -313,6 +315,13 @@ const Login = () => {
           {isLogin ? "Don't have an account?" : "Already have an account?"} <span className="signup-link" onClick={() => { setIsLogin(!isLogin); setEmailError(""); setPasswordError(""); }}>{isLogin ? "Sign Up" : "Login"}</span>
         </div>
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

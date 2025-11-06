@@ -296,7 +296,7 @@ function DetailView({ topicTitle, details, onBack, mainTopic }) {
 // ====================================================================
 // Main InteractiveRoadmap Component (No significant changes needed)
 // ====================================================================
-function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
+function InteractiveRoadmap({ topics, topicTitle, onNewSearch, onShowToast }) {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
   const [selectedTopicId, setSelectedTopicId] = useState(null);
@@ -428,7 +428,9 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
       setSelectedTopicId(cacheKey);
       setViewMode('detail');
     } catch (err) {
-      alert(`Failed to load details: ${err.message}`);
+      if (onShowToast) {
+        onShowToast({ message: `Failed to load details: ${err.message}`, type: 'error' });
+      }
     } finally {
       setLoadingTopics(prev => {
         const newSet = new Set(prev);

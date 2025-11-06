@@ -2,6 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './styles/Quiz.css';
+import LoadingScreen from './components/LoadingScreen';
+import ConfirmDialog from './components/ConfirmDialog';
+import Toast from './components/Toast';
 
 function Quiz() {
   const [searchParams] = useSearchParams();
@@ -28,6 +31,8 @@ function Quiz() {
   const [descriptivePassed, setDescriptivePassed] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // Memoized loader to avoid hook dependency warnings
   const loadQuizStatus = useCallback(async () => {
@@ -108,7 +113,7 @@ function Quiz() {
 
   const handleStartQuiz = async (type, quizTypeParam, numQuestions) => {
     if (!topic) {
-      alert("Error: No topic found. Returning to roadmap.");
+      setToast({ message: "Error: No topic found. Returning to roadmap.", type: 'error' });
       navigate('/home');
       return;
     }
@@ -140,7 +145,7 @@ function Quiz() {
       setCurrentQuestions(data.questions || []);
       setView('quiz');
     } catch (err) {
-      alert(err.message);
+      setToast({ message: err.message || 'Failed to generate quiz.', type: 'error' });
       setView('start');
       setCurrentQuizType(null);
     }
@@ -181,7 +186,7 @@ function Quiz() {
                                 descriptiveAnswersToGrade.every(a => a.user_answer.trim() === "");
     
     if (allDescriptiveEmpty) {
-      alert("Please provide an answer for at least one descriptive question.");
+      setToast({ message: "Please provide an answer for at least one descriptive question.", type: 'warning' });
       setIsSubmitting(false);
       return;
     }
@@ -207,7 +212,7 @@ function Quiz() {
         const data = await response.json();
         descriptiveScoreCount = data.graded_answers.reduce((acc, a) => acc + a.score, 0);
       } catch (err) {
-        alert(err.message);
+        setToast({ message: err.message || 'Failed to analyze answers.', type: 'error' });
         setIsSubmitting(false);
         return;
       }
@@ -429,9 +434,7 @@ function Quiz() {
       )}
 
       {view === 'loading' && (
-        <div className="quiz-loading-view">
-          <p className="loading-text">Generating your quiz...</p>
-        </div>
+        <LoadingScreen message="Generating your quiz..." />
       )}
 
       {view === 'quiz' && (
@@ -544,6 +547,26 @@ function Quiz() {
             </button>
           </div>
         </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText={confirmDialog.confirmText}
+          cancelText={confirmDialog.cancelText}
+          isDangerous={confirmDialog.isDangerous}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={confirmDialog.onCancel}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import useTextSelection from './TextSelection'; // UPDATED import
 import FlashcardView from './FlashcardView';
+import ConfirmDialog from './ConfirmDialog';
+import Toast from './Toast';
 import styles from './SummaryView.module.css';
 
 // OLD TextSelectionWrapper component has been REMOVED
@@ -18,13 +20,14 @@ const SummaryView = ({ summaryContent, onBack }) => {
   const [showFlashcards, setShowFlashcards] = useState(false);
   const [flashcards, setFlashcards] = useState([]);
   const [loadingFlashcards, setLoadingFlashcards] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [toast, setToast] = useState(null);
   const menuRefs = useRef({});
 
-  // ADDED: Callback and hook for text selection
   const handleAskXiao = (selectedText) => {
     window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
   };
-  const [summaryContainerRef, AskButton] = useTextSelection(handleAskXiao);
+  const summaryContainerRef = useTextSelection(handleAskXiao);
 
 
   // Fetch list of PDF summaries when component loads
@@ -234,48 +237,60 @@ const SummaryView = ({ summaryContent, onBack }) => {
   };
 
   // Handle delete
-  const handleDelete = async (pdfName, e) => {
+  const handleDelete = (pdfName, e) => {
     e.stopPropagation();
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    setOpenMenu(null);
 
-    if (!window.confirm(`Are you sure you want to delete the summary for "${pdfName}"?`)) {
-      return;
-    }
-
-    try {
-      const encodedPdfName = encodeURIComponent(pdfName);
-      const res = await fetch(`http://localhost:5000/delete_pdf_summary/${encodedPdfName}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+    setConfirmDialog({
+      title: 'Delete Summary',
+      message: `Are you sure you want to delete the summary for "${pdfName}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      isDangerous: true,
+      onConfirm: async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setConfirmDialog(null);
+          return;
         }
-      });
 
-      if (res.ok) {
-        // If deleted tab was active, switch to first available or null
-        const remaining = pdfSummaries.filter(pdf => pdf.pdf_name !== pdfName);
-        if (activeTab === pdfName) {
-          setActiveTab(remaining.length > 0 ? remaining[0].pdf_name : null);
+        try {
+          const encodedPdfName = encodeURIComponent(pdfName);
+          const res = await fetch(`http://localhost:5000/delete_pdf_summary/${encodedPdfName}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          });
+
+          if (res.ok) {
+            const remaining = pdfSummaries.filter(pdf => pdf.pdf_name !== pdfName);
+            if (activeTab === pdfName) {
+              setActiveTab(remaining.length > 0 ? remaining[0].pdf_name : null);
+            }
+
+            setPdfSummaries(prev => prev.filter(pdf => pdf.pdf_name !== pdfName));
+            setSummaryCache(prev => {
+              const newCache = { ...prev };
+              delete newCache[pdfName];
+              return newCache;
+            });
+            setToast({ message: `Summary "${pdfName}" deleted successfully.`, type: 'success' });
+          } else {
+            setError("Failed to delete PDF summary");
+            setToast({ message: "Failed to delete summary.", type: 'error' });
+          }
+        } catch (err) {
+          console.error("Error deleting PDF summary:", err);
+          setError("Error deleting PDF summary");
+          setToast({ message: err.message || "Error deleting summary.", type: 'error' });
+        } finally {
+          setConfirmDialog(null);
         }
-        
-        // Remove from state
-        setPdfSummaries(prev => prev.filter(pdf => pdf.pdf_name !== pdfName));
-        // Remove from cache
-        setSummaryCache(prev => {
-          const newCache = { ...prev };
-          delete newCache[pdfName];
-          return newCache;
-        });
-        setOpenMenu(null);
-      } else {
-        setError("Failed to delete PDF summary");
-      }
-    } catch (err) {
-      console.error("Error deleting PDF summary:", err);
-      setError("Error deleting PDF summary");
-    }
+      },
+      onCancel: () => setConfirmDialog(null)
+    });
   };
 
   // Close menu when clicking outside
@@ -317,117 +332,150 @@ const SummaryView = ({ summaryContent, onBack }) => {
   // Show flashcards view if active
   if (showFlashcards) {
     return (
-      <FlashcardView 
-        flashcards={flashcards} 
-        onBack={() => setShowFlashcards(false)} 
-      />
+      <>
+        <FlashcardView 
+          flashcards={flashcards} 
+          onBack={() => setShowFlashcards(false)} 
+        />
+        {confirmDialog && (
+          <ConfirmDialog
+            title={confirmDialog.title}
+            message={confirmDialog.message}
+            confirmText={confirmDialog.confirmText}
+            cancelText={confirmDialog.cancelText}
+            isDangerous={confirmDialog.isDangerous}
+            onConfirm={confirmDialog.onConfirm}
+            onCancel={confirmDialog.onCancel}
+          />
+        )}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </>
     );
   }
 
   // Show tabs interface
   return (
-    <div className={styles['summary-view']}>
-      <button className={styles['back-btn']} onClick={onBack}>
-        &larr; Back to Projects
-      </button>
-      
-      {loadingFlashcards && (
-        <div className={styles['loading-overlay']}>
-          <p className={styles['loading']}>Generating flashcards...</p>
-        </div>
-      )}
-      
-      {loading && pdfSummaries.length === 0 ? (
-        <p className={styles['loading']}>Loading PDF summaries...</p>
-      ) : pdfSummaries.length === 0 ? (
-        <div className={styles['no-summary-view']}>
-          <div className={styles['no-summary-card']}>
-            <h1>No PDF summaries yet. Upload a PDF to generate a summary!</h1>
+    <>
+      <div className={styles['summary-view']}>
+        <button className={styles['back-btn']} onClick={onBack}>
+          &larr; Back to Projects
+        </button>
+        
+        {loadingFlashcards && (
+          <div className={styles['loading-overlay']}>
+            <p className={styles['loading']}>Generating flashcards...</p>
           </div>
-        </div>
-      ) : (
-        <>
-          <h2 className={styles['neon']}>PDF Summaries</h2>
-          
-          {/* Tabs Container */}
-          <div className={styles['tabs-container']}>
-            {pdfSummaries.map((pdf, index) => (
-              <div
-                key={index}
-                className={`${styles['tab-wrapper']} ${activeTab === pdf.pdf_name ? styles['tab-active'] : ''}`}
-              >
-                <button
-                  className={`${styles['tab']} ${activeTab === pdf.pdf_name ? styles['tab-active'] : ''}`}
-                  onClick={(e) => handleTabClick(pdf.pdf_name, e)}
-                >
-                  📄 {pdf.pdf_name}
-                </button>
-                <div className={styles['tab-menu-container']}>
-                  <button
-                    className={styles['menu-button']}
-                    data-menu-button
-                    onClick={(e) => handleMenuToggle(pdf.pdf_name, e)}
-                    title="More options"
-                  >
-                    ⋯
-                  </button>
-                  {openMenu === pdf.pdf_name && (
-                    <div
-                      ref={el => menuRefs.current[pdf.pdf_name] = el}
-                      className={styles['tab-menu']}
-                      data-tab-menu
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        className={styles['flashcard-button']}
-                        onClick={(e) => handleGenerateFlashcards(pdf.pdf_name, e)}
-                      >
-                        📚 Flashcards
-                      </button>
-                      <button
-                        className={styles['delete-button']}
-                        onClick={(e) => handleDelete(pdf.pdf_name, e)}
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Tab Content */}
-          {error && <p className={styles['error']}>{error}</p>}
-          
-          {loadingSummaries[activeTab] ? (
-            <div className={styles['summary-content-box']}>
-              <p className={styles['loading']}>Loading summary...</p>
+        )}
+        
+        {loading && pdfSummaries.length === 0 ? (
+          <p className={styles['loading']}>Loading PDF summaries...</p>
+        ) : pdfSummaries.length === 0 ? (
+          <div className={styles['no-summary-view']}>
+            <div className={styles['no-summary-card']}>
+              <h1>No PDF summaries yet. Upload a PDF to generate a summary!</h1>
             </div>
-          ) : (
-            // UPDATED: Added position: relative
-            <div className={styles['summary-content-box']} style={{ position: 'relative' }}>
-              {getCurrentSummary() ? (
-                <>
-                  {/* UPDATED: Added AskButton */}
-                  {AskButton}
-                  
-                  {/* UPDATED: Removed wrapper, added ref, removed data-selectable */}
+          </div>
+        ) : (
+          <>
+            <h2 className={styles['neon']}>PDF Summaries</h2>
+            
+            {/* Tabs Container */}
+            <div className={styles['tabs-container']}>
+              {pdfSummaries.map((pdf, index) => (
+                <div
+                  key={index}
+                  className={`${styles['tab-wrapper']} ${activeTab === pdf.pdf_name ? styles['tab-active'] : ''}`}
+                >
+                  <button
+                    className={`${styles['tab']} ${activeTab === pdf.pdf_name ? styles['tab-active'] : ''}`}
+                    onClick={(e) => handleTabClick(pdf.pdf_name, e)}
+                  >
+                    📄 {pdf.pdf_name}
+                  </button>
+                  <div className={styles['tab-menu-container']}>
+                    <button
+                      className={styles['menu-button']}
+                      data-menu-button
+                      onClick={(e) => handleMenuToggle(pdf.pdf_name, e)}
+                      title="More options"
+                    >
+                      ⋯
+                    </button>
+                    {openMenu === pdf.pdf_name && (
+                      <div
+                        ref={el => menuRefs.current[pdf.pdf_name] = el}
+                        className={styles['tab-menu']}
+                        data-tab-menu
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          className={styles['flashcard-button']}
+                          onClick={(e) => handleGenerateFlashcards(pdf.pdf_name, e)}
+                        >
+                          📚 Flashcards
+                        </button>
+                        <button
+                          className={styles['delete-button']}
+                          onClick={(e) => handleDelete(pdf.pdf_name, e)}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            {error && <p className={styles['error']}>{error}</p>}
+            
+            {loadingSummaries[activeTab] ? (
+              <div className={styles['summary-content-box']}>
+                <p className={styles['loading']}>Loading summary...</p>
+              </div>
+            ) : (
+              <div className={styles['summary-content-box']} style={{ position: 'relative' }}>
+                {getCurrentSummary() ? (
                   <div 
                     ref={summaryContainerRef} 
                     className={styles['markdown-content']}
                   >
                     <ReactMarkdown>{getCurrentSummary()}</ReactMarkdown>
                   </div>
-                </>
-              ) : (
-                <p className={styles['loading']}>No summary available for this PDF.</p>
-              )}
-            </div>
-          )}
-        </>
+                ) : (
+                  <p className={styles['loading']}>No summary available for this PDF.</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText={confirmDialog.confirmText}
+          cancelText={confirmDialog.cancelText}
+          isDangerous={confirmDialog.isDangerous}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={confirmDialog.onCancel}
+        />
       )}
-    </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </>
   );
 };
 

@@ -11,6 +11,9 @@ import Settings from './Settings';
 import Header from './components/Header';
 import Chatbot from './components/Chatbot';
 import SummaryView from './components/SummaryView';
+import LoadingScreen from './components/LoadingScreen';
+import ConfirmDialog from './components/ConfirmDialog';
+import Toast from './components/Toast';
 
 function Home() {
   // --- General State (Managed by Home) ---
@@ -19,6 +22,9 @@ function Home() {
   const [currentView, setCurrentView] = useState('projects');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [askFromSelection, setAskFromSelection] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [toast, setToast] = useState(null);
   
   // --- Roadmap State (Managed by Home) ---
   const [projects, setProjects] = useState([]);
@@ -67,6 +73,8 @@ function Home() {
           localStorage.removeItem("token");
           window.location.href = "/login";
         }
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchUserData();
@@ -134,31 +142,51 @@ function Home() {
     setCurrentView('projects'); // Always switch to projects view when selecting a roadmap
   };
 
-  const handleDeleteProject = async (topic) => {
-    const token = localStorage.getItem("token");
-    if (!token || !topic) return;
-    try {
-      const res = await fetch("http://localhost:5000/delete_roadmap", {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ topic })
-      });
-      if (res.ok) {
-        setProjects(prev => prev.filter(p => p.topic !== topic));
-        if (activeProjectId) {
-          const active = projects.find(p => p.id === activeProjectId);
-          if (active && active.topic === topic) {
-            setActiveProjectId(null);
-            setCurrentView('projects');
+  const handleDeleteProject = (topic) => {
+    setConfirmDialog({
+      title: 'Delete Roadmap',
+      message: `Are you sure you want to delete the "${topic}" roadmap? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      isDangerous: true,
+      onConfirm: async () => {
+        const token = localStorage.getItem("token");
+        if (!token || !topic) return;
+        try {
+          const res = await fetch("http://localhost:5000/delete_roadmap", {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ topic })
+          });
+          if (res.ok) {
+            setProjects(prev => prev.filter(p => p.topic !== topic));
+            if (activeProjectId) {
+              const active = projects.find(p => p.id === activeProjectId);
+              if (active && active.topic === topic) {
+                setActiveProjectId(null);
+                setCurrentView('projects');
+              }
+            }
+            setToast({
+              message: `Roadmap "${topic}" deleted successfully`,
+              type: 'success'
+            });
           }
+        } catch (e) {
+          console.error('Failed to delete roadmap:', e);
+          setToast({
+            message: 'Failed to delete roadmap',
+            type: 'error'
+          });
+        } finally {
+          setConfirmDialog(null);
         }
-      }
-    } catch (e) {
-      console.error('Failed to delete roadmap:', e);
-    }
+      },
+      onCancel: () => setConfirmDialog(null)
+    });
   };
 
   const handleShowProfile = () => {
@@ -204,6 +232,8 @@ function Home() {
 
   return (
     <>
+      {isLoading && <LoadingScreen message="Loading your dashboard..." />}
+      
       <div className={styles['home-container']}>
         <Sidebar
           isOpen={isSidebarOpen}
@@ -236,7 +266,8 @@ function Home() {
               <InteractiveRoadmap 
                 topics={activeProject.topics} 
                 topicTitle={activeProject.topic} 
-                onNewSearch={handleNewProject} 
+                onNewSearch={handleNewProject}
+                onShowToast={(toastData) => setToast(toastData)} 
               />
             ) : (
               <RoadmapGenerator onRoadmapGenerated={handleRoadmapGenerated} />
@@ -251,6 +282,26 @@ function Home() {
           )}
         </main>
       </div>
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText={confirmDialog.confirmText}
+          cancelText={confirmDialog.cancelText}
+          isDangerous={confirmDialog.isDangerous}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={confirmDialog.onCancel}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       {/* Chatbot is now self-contained and just needs one prop */}
       <Chatbot onSummaryGenerated={handleSummaryGenerated} onAskFromSelection={askFromSelection} />
