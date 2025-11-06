@@ -27,6 +27,8 @@ function Quiz() {
   const [mcqPassed, setMcqPassed] = useState(false);
   const [descriptivePassed, setDescriptivePassed] = useState(false);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Memoized loader to avoid hook dependency warnings
   const loadQuizStatus = useCallback(async () => {
     if (!topic || !mainTopic) return;
@@ -145,6 +147,9 @@ function Quiz() {
   };
 
   const handleSubmitQuiz = async () => {
+    setIsSubmitting(true);
+
+
     let mcqScoreCount = 0;
     let mcqTotalCount = 0;
     const descriptiveAnswersToGrade = [];
@@ -177,6 +182,7 @@ function Quiz() {
     
     if (allDescriptiveEmpty) {
       alert("Please provide an answer for at least one descriptive question.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -202,6 +208,7 @@ function Quiz() {
         descriptiveScoreCount = data.graded_answers.reduce((acc, a) => acc + a.score, 0);
       } catch (err) {
         alert(err.message);
+        setIsSubmitting(false);
         return;
       }
     }
@@ -337,6 +344,7 @@ function Quiz() {
     setFeedback('');
     setCurrentQuizType(null);
     setPracticeMode(false);
+    setIsSubmitting(false);
     loadQuizStatus();
   };
 
@@ -349,6 +357,7 @@ function Quiz() {
     setCurrentQuestions([]);
     setCurrentQuizType(null);
     setPracticeMode(false);
+    setIsSubmitting(false);
     loadQuizStatus();
   };
 
@@ -460,8 +469,8 @@ function Quiz() {
               </div>
             ))}
           </div>
-          <button className="submit-quiz-button" onClick={handleSubmitQuiz}>
-            Submit
+          <button className="submit-quiz-button" onClick={handleSubmitQuiz} disabled={isSubmitting}>
+          {isSubmitting ? 'Grading...' : 'Submit'}
           </button>
         </div>
       )}

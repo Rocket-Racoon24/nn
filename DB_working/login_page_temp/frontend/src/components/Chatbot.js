@@ -11,26 +11,31 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const fileInputRef = useRef(null);
   const chatbotBodyRef = useRef(null);
+  const textareaRef = useRef(null); // <-- ADDED: Ref for auto-growing textarea
 
-  // Load chat memory from localStorage on mount
+  // Load chat memory from sessionStorage on mount
   useEffect(() => {
-    const savedMemory = localStorage.getItem('chatbot_memory');
-    if (savedMemory) {
-      try {
-        const memory = JSON.parse(savedMemory);
-        if (memory.messages && memory.messages.length > 0) {
-          setChatMessages(memory.messages);
-        }
-      } catch (e) {
-        console.error('Error loading chatbot memory:', e);
-      }
+    // THIS IS THE CORRECT HOOK FOR TEXT SELECTION
+    if (onAskFromSelection) {
+      setShowChatbot(true);
+      
+      const formattedMessage = `explain: [${onAskFromSelection}]`;
+      setChatInput(formattedMessage);
+  
+      // Auto-send after a brief delay
+      const timer = setTimeout(() => {
+        handleSendMessageWithText(formattedMessage);
+      }, 100);
+  
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [onAskFromSelection]); // eslint-disable-line react-hooks/exhaustive-deps
+  
 
-  // Save chat memory to localStorage whenever messages change
+  // Save chat memory to sessionStorage whenever messages change
   useEffect(() => {
     if (chatMessages.length > 0) {
-      localStorage.setItem('chatbot_memory', JSON.stringify({
+      sessionStorage.setItem('chatbot_memory', JSON.stringify({
         messages: chatMessages,
         timestamp: Date.now()
       }));
@@ -40,7 +45,7 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
   // Clear memory on logout (listen for logout event)
   useEffect(() => {
     const handleLogout = () => {
-      localStorage.removeItem('chatbot_memory');
+      sessionStorage.removeItem('chatbot_memory');
       setChatMessages([]);
     };
     
@@ -56,7 +61,16 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
     }
   }, [chatMessages]);
 
+  // --- ADDED: Auto-resize textarea ---
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'; // Reset height to shrink
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`; // Set to new scroll height
+    }
+  }, [chatInput]);
+
   // Send message with optional text parameter (for text selection)
+  // --- MODIFIED: Cleaned up input clearing logic ---
   const handleSendMessageWithText = async (textToSend = null) => {
     const messageText = textToSend || chatInput;
     if (!messageText.trim() && pdfFiles.length === 0) return;
@@ -77,16 +91,17 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
     
     if (pdfFiles.length > 0) { for (const file of pdfFiles) { formData.append("files", file); } }
 
-    if (!textToSend) {
-      setChatInput("");
-      setPdfFiles([]);
-      setShowToolsMenu(false);
-      
-      // Reset file input to allow uploading again
+    // --- NEW LOGIC: Clear inputs *after* grabbing their values ---
+    if (messageText.trim()) {
+      setChatInput(""); // Clear text input
+    }
+    if (pdfFiles.length > 0) {
+      setPdfFiles([]); // Clear files
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
+    setShowToolsMenu(false); // Always close tools menu
 
     try {
       const res = await fetch("http://localhost:5000/ask", { 
@@ -122,18 +137,8 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
     handleSendMessageWithText();
   };
 
-  // Handle external ask from text selection
-  useEffect(() => {
-    if (onAskFromSelection) {
-      setShowChatbot(true);
-      setChatInput(onAskFromSelection);
-      // Auto-send after a brief delay
-      const timer = setTimeout(() => {
-        handleSendMessageWithText(onAskFromSelection);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [onAskFromSelection]); // eslint-disable-line react-hooks/exhaustive-deps
+  // --- DELETED: Removed redundant useEffect for onAskFromSelection ---
+  // (The duplicate block from lines 109-119 was removed)
 
   const handleFileChange = (e) => { 
     setPdfFiles(prev => [...prev, ...e.target.files])
@@ -186,14 +191,24 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
                   accept=".pdf"
                 />
                 <button className={styles['tool-btn']} onClick={() => setShowToolsMenu(!showToolsMenu)}>+</button>
-                <input
-                  type="text"
+                
+                {/* --- MODIFIED: Replaced <input> with <textarea> --- */}
+                <textarea
+                  ref={textareaRef}
+                  rows="1"
                   className={styles['chat-input']}
                   placeholder="Ask something..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyPress={(e) => {
+                    // Send on Enter, but allow Shift+Enter for new line
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault(); // Prevent default (new line)
+                      handleSendMessage();
+                    }
+                  }}
                 />
+                
                 <button className={styles['send-btn']} onClick={handleSendMessage}>➤</button>
               </div>
             </div>

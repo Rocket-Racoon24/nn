@@ -1,29 +1,38 @@
 // src/InteractiveRoadmap.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useTextSelection from './components/TextSelection';
+import useTextSelection from './components/TextSelection'; // UPDATED import
 import './styles/Roadmap.css';
 
-// Text selection wrapper component for roadmap
-const TextSelectionWrapper = ({ children }) => {
-  const handleAskXiao = (selectedText) => {
-    window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
-  };
-  const { AskButton } = useTextSelection(handleAskXiao, true);
-  
-  return (
-    <div style={{ position: 'relative' }}>
-      {AskButton}
-      {children}
-    </div>
-  );
-};
+
+
+// OLD TextSelectionWrapper component has been REMOVED
 
 // Component for displaying sub-details when a study item is clicked
 function StudyItemDetail({ term, context, onBack }) {
   const [subDetails, setSubDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const renderCount = useRef(0);
+renderCount.current++;
+console.log("🔁 StudyItemDetail render:", renderCount.current, {
+  term,
+  isLoading,
+  error,
+  subDetails,
+});
+
+  useEffect(() => {
+    console.log("Re-render: StudyItemDetail");
+  });
+  
+
+  // ADDED: Callback and hook for text selection
+  const handleAskXiao = useCallback((selectedText) => {
+    window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
+  }, []); // empty dependency → stable reference
+  
+  const [containerRef, AskButton] = useTextSelection(handleAskXiao);
 
   useEffect(() => {
     const fetchSubDetails = async () => {
@@ -112,29 +121,42 @@ function StudyItemDetail({ term, context, onBack }) {
 
   if (!term) {
     return (
-      <div className="study-item-detail-display">
-        <p className="placeholder-text">Select a topic from the left to view details.</p>
+      // UPDATED: Added wrapper div
+      <div className="detail-view-right-panel" style={{ position: 'relative' }}>
+        <div className="study-item-detail-display">
+          <p className="placeholder-text">Select a topic from the left to view details.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="study-item-detail-display" data-selectable>
-      {isLoading && (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <p className="loading-text">Generating details...</p>
-          <div style={{ marginTop: '1rem' }}>⏳</div>
-        </div>
-      )}
-      {error && !isLoading && (
-        <div style={{ padding: '1rem', color: '#ef4444', textAlign: 'center' }}>
-          <p className="error-text">{error}</p>
-        </div>
-      )}
-      {!isLoading && !error && subDetails && <div dangerouslySetInnerHTML={{ __html: subDetails }} data-selectable />}
-      {!isLoading && !error && !subDetails && (
-        <p className="placeholder-text">Select a topic from the left to view details.</p>
-      )}
+    // UPDATED: Added wrapper div and AskButton
+    <div className="detail-view-right-panel" style={{ pointerEvents: 'auto', position: 'relative' }}>
+      {AskButton}
+      <div 
+        ref={containerRef} // UPDATED: Added ref
+        style={{ pointerEvents: 'auto' }}
+        className="study-item-detail-display" 
+        // data-selectable has been removed
+      >
+        {isLoading && (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <p className="loading-text">Generating details...</p>
+            <div style={{ marginTop: '1rem' }}>⏳</div>
+          </div>
+        )}
+        {error && !isLoading && (
+          <div style={{ padding: '1rem', color: '#ef4444', textAlign: 'center' }}>
+            <p className="error-text">{error}</p>
+          </div>
+        )}
+        {/* UPDATED: data-selectable has been removed */}
+        {!isLoading && !error && subDetails && <div dangerouslySetInnerHTML={{ __html: subDetails }} />}
+        {!isLoading && !error && !subDetails && (
+          <p className="placeholder-text">Select a topic from the left to view details.</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -206,12 +228,11 @@ function DetailView({ topicTitle, details, onBack, mainTopic }) {
           ))}
         </div>
         
-        <TextSelectionWrapper>
-          <StudyItemDetail 
-            term={selectedTerm} 
-            context={mainTopic}
-          />
-        </TextSelectionWrapper>
+        {/* UPDATED: TextSelectionWrapper has been removed */}
+        <StudyItemDetail 
+          term={selectedTerm} 
+          context={mainTopic}
+        />
       </div>
     </div>
   );
@@ -220,7 +241,7 @@ function DetailView({ topicTitle, details, onBack, mainTopic }) {
 // Main InteractiveRoadmap Component
 function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
+  const [viewMode, setViewMode] =useState('list'); // 'list' or 'detail'
   const [selectedTopicId, setSelectedTopicId] = useState(null);
   const [detailsCache, setDetailsCache] = useState({});
   const [loadingTopics, setLoadingTopics] = useState(new Set());

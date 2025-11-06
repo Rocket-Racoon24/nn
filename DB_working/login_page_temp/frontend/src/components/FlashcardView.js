@@ -1,6 +1,21 @@
 // FlashcardView.js - Component for displaying flashcards
 import React, { useState } from 'react';
 import styles from './FlashcardView.module.css';
+import useTextSelection from './TextSelection';
+
+const TextSelectionWrapper = ({ children }) => {
+    const handleAskXiao = (selectedText) => {
+      window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
+    };
+    const { AskButton } = useTextSelection(handleAskXiao, true);
+    
+    return (
+      <div style={{ position: 'relative' }}>
+        {AskButton}
+        {children}
+      </div>
+    );
+  };
 
 const FlashcardView = ({ flashcards, onBack }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -8,16 +23,42 @@ const FlashcardView = ({ flashcards, onBack }) => {
 
   if (!flashcards || flashcards.length === 0) {
     return (
-      <div className={styles['flashcard-container']}>
-        <button className={styles['back-btn']} onClick={onBack}>
-          &larr; Back to Summary
-        </button>
-        <div className={styles['no-cards']}>
-          <p>No flashcards available.</p>
+        <div className={styles['flashcard-container']}>
+          {/* ... (back button and header are fine) ... */}
+    
+          {/* --- MODIFIED: Main area is now wrapped --- */}
+          <TextSelectionWrapper>
+            <div className={styles['flashcard-main-area']}>
+              {/* ... (previous button) ... */}
+    
+              <div className={styles['flashcard-wrapper']}>
+                <div 
+                  className={`${styles['flashcard']} ${isFlipped ? styles['flipped'] : ''}`}
+                >
+                  <div className={styles['flashcard-front']}>
+                    <div className={styles['card-label']}>Question</div>
+                    <div className={styles['card-content']} data-selectable> {/* <-- ADD data-selectable */}
+                      {currentCard.question}
+                    </div>
+                  </div>
+                  <div className={styles['flashcard-back']}>
+                    <div className={styles['card-label']}>Answer</div>
+                    <div className={styles['card-content']} data-selectable> {/* <-- ADD data-selectable */}
+                      {currentCard.answer}
+                    </div>
+                  </div>
+                </div>
+              </div>
+    
+              {/* ... (next button) ... */}
+            </div>
+          </TextSelectionWrapper>
+          {/* --- END OF WRAPPER --- */}
+    
+          {/* ... (flashcard controls) ... */}
         </div>
-      </div>
-    );
-  }
+      );
+    };
 
   const currentCard = flashcards[currentIndex];
   const progress = ((currentIndex + 1) / flashcards.length) * 100;

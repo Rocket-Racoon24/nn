@@ -69,14 +69,14 @@
     justify-content: center;
     position: relative;
     /* max-width for the whole area, allowing buttons to sit outside card */
-    max-width: 750px; 
+    max-width: 920px; 
     margin: 2rem auto;
   }
   
   .flashcard-wrapper {
     perspective: 1000px;
     min-height: 300px;
-    max-width: 600px;
+    max-width: 800px;
     width: 100%;
     /* --- MODIFIED: margin removed, now handled by main-area --- */
     margin: 0; 
@@ -90,11 +90,13 @@
     transform-style: preserve-3d;
     transition: transform 0.6s;
     /* --- MODIFIED: Removed cursor: pointer --- */
-    cursor: default; 
+    cursor: default;
+    transform-origin: center center;
+    transform: translateX(-33px);
   }
   
   .flashcard.flipped {
-    transform: rotateY(180deg);
+    transform: translateX(33px) rotateY(180deg);
   }
   
   .flashcard-front,
@@ -143,12 +145,6 @@
     padding: 1rem;
   }
   
-  /* --- REMOVED: .hint class is no longer used --- */
-  /*
-  .hint {
-    ...
-  }
-  */
   
   .flashcard-controls {
     display: flex;
@@ -203,11 +199,11 @@
   }
   
   .nav-prev {
-    left: 0;
+    right: 290px;
   }
   
   .nav-next {
-    right: 0;
+    left: 290px;
   }
   /* --- End new nav-btn styles --- */
   

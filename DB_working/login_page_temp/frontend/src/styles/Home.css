@@ -122,7 +122,6 @@
           flex-direction: column;
           padding: 20px;
           position: relative;
-          overflow-y: auto;
           /* Remove padding for the no-summary-view to be full screen */
         }
         main.no-padding {

@@ -279,7 +279,7 @@ export function Profile({ onBack, topics, user }) {
             <div style={mockStyle.iconWrapper('#00ff9c')}><Icon name="Calendar" color="#00ff9c" /></div>
             <span style={{ fontSize: '14px', color: '#a9ffdf' }}>Study Streak</span>
           </div>
-          <p style={{ color: '#e5fff3', marginTop: '8px' }}>{calculateStreak()} days</p>
+          <p style={{ color: '#e5fff3', marginTop: '8px' }}>    0 days</p>
         </div>
 
         <div style={{...mockStyle.card, backgroundColor: 'rgba(14,25,27,0.6)', border: '1px solid rgba(0,255,156,0.2)'}}>

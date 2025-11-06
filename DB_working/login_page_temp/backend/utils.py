@@ -15,16 +15,17 @@ def get_local_llm_response(prompt_text):
     It also cleans the response by removing <think> blocks.
     Raises LLMConnectionError if connection fails.
     """
+    
     prompt_text += " /no-think" # Suppress the <think> block
     headers = { "Content-Type": "application/json" }
     data = {
         "model": "local-model",
         "messages": [{"role": "user", "content": prompt_text}],
         "temperature": 0.7,
-        "max_tokens": 14000
+        "max_tokens": 12000
     }
     try:
-        response = requests.post(LLAMA_CPP_URL, headers=headers, data=json.dumps(data), timeout=30)
+        response = requests.post(LLAMA_CPP_URL, headers=headers, data=json.dumps(data), timeout=300)
         response.raise_for_status()
         content = response.json()['choices'][0]['message']['content']
         # Reliably remove the <think> block if the AI still adds it

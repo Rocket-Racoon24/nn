@@ -1,180 +1,100 @@
-// TextSelection.js - Hook for handling text selection and "Ask Xiao" button
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const useTextSelection = (onAskXiao, enabled = true) => {
-  const [selectedText, setSelectedText] = useState('');
-  const [selectionPosition, setSelectionPosition] = useState({ top: 0, left: 0 });
-  const [showAskButton, setShowAskButton] = useState(false);
+/**
+ * A hook to detect text selection inside a container and show a floating button.
+ * It relies entirely on the browser’s native text selection, no interference.
+ *
+ * @param {function} onAsk - Callback when the Ask button is clicked with selected text.
+ * @returns {[React.RefObject, JSX.Element]} containerRef and floating button JSX.
+ */
+function useTextSelection(onAsk) {
   const containerRef = useRef(null);
-  const buttonRef = useRef(null);
+  const [selection, setSelection] = useState(null);
 
   useEffect(() => {
-    if (!enabled) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    const handleSelection = () => {
-      const selection = window.getSelection();
-      
-      // Check if there's a valid selection
-      if (!selection || selection.rangeCount === 0) {
-        setShowAskButton(false);
+    const handleSelectionChange = () => {
+      const sel = window.getSelection();
+
+      // No active selection or user cleared it
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        setSelection(null);
         return;
       }
 
-      const range = selection.getRangeAt(0);
-      const text = selection.toString().trim();
-
-      // Check if selection is within a text node (not selecting entire elements)
-      const commonAncestor = range.commonAncestorContainer;
-      
-      // Prevent selection if clicking on buttons or interactive elements
-      if (commonAncestor.nodeType === Node.ELEMENT_NODE) {
-        const element = commonAncestor;
-        if (element.tagName === 'BUTTON' || 
-            element.tagName === 'A' || 
-            element.closest('button') || 
-            element.closest('a')) {
-          setShowAskButton(false);
-          return;
-        }
+      // Ensure selection is inside our container
+      if (
+        !container.contains(sel.anchorNode) ||
+        !container.contains(sel.focusNode)
+      ) {
+        setSelection(null);
+        return;
       }
 
-      // Check if selection is reasonable (not too large, not too small)
-      if (text.length > 3 && text.length < 1000) { // Min 3 chars, max 1000 to prevent full page selection
-        const rect = range.getBoundingClientRect();
-        
-        setSelectedText(text);
-        setSelectionPosition({
-          top: rect.top + window.scrollY - 60, // Position above the selection
-          left: rect.left + window.scrollX + rect.width / 2
-        });
-        setShowAskButton(true);
-      } else {
-        setShowAskButton(false);
-      }
+      // Get position of the selected text
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      // Calculate position relative to the container
+      const top =
+        rect.top - containerRect.top + container.scrollTop - 40; // 40px above selection
+      const left =
+        rect.left - containerRect.left + container.scrollLeft + rect.width / 2;
+
+      setSelection({
+        text: sel.toString().trim(),
+        top,
+        left,
+      });
     };
 
-    const handleMouseUp = (e) => {
-      // Only process if selection is within content areas
-      const target = e.target;
-      // Check if target is an Element (has closest method)
-      if (target && typeof target.closest === 'function') {
-        const isContentArea = target.closest('.markdown-content') || 
-                             target.closest('.study-item-detail-display') ||
-                             target.closest('[data-selectable]');
-        
-        if (isContentArea) {
-          setTimeout(handleSelection, 10);
-        } else {
-          setShowAskButton(false);
-        }
-      } else {
-        // If target is not an Element, check parent
-        const parent = target?.parentElement;
-        if (parent && typeof parent.closest === 'function') {
-          const isContentArea = parent.closest('.markdown-content') || 
-                               parent.closest('.study-item-detail-display') ||
-                               parent.closest('[data-selectable]');
-          if (isContentArea) {
-            setTimeout(handleSelection, 10);
-          } else {
-            setShowAskButton(false);
-          }
-        } else {
-          setShowAskButton(false);
-        }
-      }
-    };
-
-    const handleClick = (e) => {
-      // Close button if clicking outside
-      if (buttonRef.current && !buttonRef.current.contains(e.target)) {
-        const selection = window.getSelection();
-        if (selection.toString().trim().length === 0) {
-          setShowAskButton(false);
-        }
-      }
-    };
-
-    // Prevent text selection on buttons and interactive elements
-    const preventSelection = (e) => {
-      const target = e.target;
-      // Check if target is an Element node
-      if (target && target.nodeType === Node.ELEMENT_NODE) {
-        if (target.tagName === 'BUTTON' || 
-            target.tagName === 'A' || 
-            (typeof target.closest === 'function' && (
-              target.closest('button') || 
-              target.closest('a') ||
-              target.closest('.tab') ||
-              target.closest('.menu-button')
-            ))) {
-          window.getSelection().removeAllRanges();
-        }
-      }
-    };
-
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('click', handleClick, true);
-    document.addEventListener('selectstart', preventSelection);
+    // Attach selection change listener
+    document.addEventListener('selectionchange', handleSelectionChange);
 
     return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('click', handleClick, true);
-      document.removeEventListener('selectstart', preventSelection);
+      document.removeEventListener('selectionchange', handleSelectionChange);
     };
-  }, [enabled]);
+  }, [onAsk]);
 
-  const handleAskXiao = (e) => {
-    e.stopPropagation();
-    if (selectedText && onAskXiao) {
-      onAskXiao(selectedText);
-      setShowAskButton(false);
-      window.getSelection().removeAllRanges(); // Clear selection
+  const handleAskClick = () => {
+    if (selection) {
+      onAsk(selection.text);
+      setSelection(null);
+      window.getSelection()?.removeAllRanges(); // optional: clear browser highlight
     }
   };
 
-  const AskButton = showAskButton ? (
-    <div
-      ref={buttonRef}
+  // Floating "Ask" button
+  const AskButton = selection ? (
+    <button
+      data-ask-button
+      onMouseDown={(e) => e.preventDefault()} // prevent losing selection
+      onClick={handleAskClick}
       style={{
         position: 'absolute',
-        top: `${selectionPosition.top}px`,
-        left: `${selectionPosition.left}px`,
-        transform: 'translateX(-50%)',
-        zIndex: 10000,
-        background: 'rgba(14, 25, 27, 0.8)',
-        color: '#00ff9c',
-        border: '1px solid rgba(0, 255, 156, 0.3)',
-        padding: '8px 16px',
-        borderRadius: '8px',
+        top: `${selection.top}px`,
+        left: `${selection.left}px`,
+        transform: 'translate(-50%, -100%)',
+        background: '#00ff9c',
+        color: '#000',
+        border: 'none',
+        borderRadius: '6px',
+        padding: '6px 10px',
         cursor: 'pointer',
-        boxShadow: '0 4px 12px rgba(0, 255, 156, 0.2)',
         fontWeight: 'bold',
-        fontSize: '14px',
-        whiteSpace: 'nowrap',
-        pointerEvents: 'auto',
-        backdropFilter: 'blur(5px)',
-        WebkitBackdropFilter: 'blur(5px)',
-        transition: 'all 0.3s ease'
-      }}
-      onClick={handleAskXiao}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(0, 255, 156, 0.1)';
-        e.currentTarget.style.borderColor = 'rgba(0, 255, 156, 0.7)';
-        e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 156, 0.3)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(14, 25, 27, 0.8)';
-        e.currentTarget.style.borderColor = 'rgba(0, 255, 156, 0.3)';
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 255, 156, 0.2)';
+        boxShadow: '0 2px 10px rgba(0, 255, 156, 0.5)',
+        zIndex: 100,
+        userSelect: 'none',
       }}
     >
-      Ask Xiao
-    </div>
+      Ask Xiao 💬
+    </button>
   ) : null;
 
-  return { AskButton, selectedText };
-};
+  return [containerRef, AskButton];
+}
 
 export default useTextSelection;
-

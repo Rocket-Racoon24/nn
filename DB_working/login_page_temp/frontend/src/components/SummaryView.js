@@ -1,24 +1,11 @@
 // src/components/SummaryView.js
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import useTextSelection from './TextSelection';
+import useTextSelection from './TextSelection'; // UPDATED import
 import FlashcardView from './FlashcardView';
 import styles from './SummaryView.module.css';
 
-// Text selection wrapper component
-const TextSelectionWrapper = ({ children }) => {
-  const handleAskXiao = (selectedText) => {
-    window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
-  };
-  const { AskButton } = useTextSelection(handleAskXiao, true);
-  
-  return (
-    <div style={{ position: 'relative' }}>
-      {AskButton}
-      {children}
-    </div>
-  );
-};
+// OLD TextSelectionWrapper component has been REMOVED
 
 const SummaryView = ({ summaryContent, onBack }) => {
   const [pdfSummaries, setPdfSummaries] = useState([]);
@@ -32,6 +19,13 @@ const SummaryView = ({ summaryContent, onBack }) => {
   const [flashcards, setFlashcards] = useState([]);
   const [loadingFlashcards, setLoadingFlashcards] = useState(false);
   const menuRefs = useRef({});
+
+  // ADDED: Callback and hook for text selection
+  const handleAskXiao = (selectedText) => {
+    window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
+  };
+  const [summaryContainerRef, AskButton] = useTextSelection(handleAskXiao);
+
 
   // Fetch list of PDF summaries when component loads
   useEffect(() => {
@@ -411,14 +405,20 @@ const SummaryView = ({ summaryContent, onBack }) => {
               <p className={styles['loading']}>Loading summary...</p>
             </div>
           ) : (
+            // UPDATED: Added position: relative
             <div className={styles['summary-content-box']} style={{ position: 'relative' }}>
               {getCurrentSummary() ? (
                 <>
-                  <TextSelectionWrapper>
-                    <div className={styles['markdown-content']} data-selectable>
-                      <ReactMarkdown>{getCurrentSummary()}</ReactMarkdown>
-                    </div>
-                  </TextSelectionWrapper>
+                  {/* UPDATED: Added AskButton */}
+                  {AskButton}
+                  
+                  {/* UPDATED: Removed wrapper, added ref, removed data-selectable */}
+                  <div 
+                    ref={summaryContainerRef} 
+                    className={styles['markdown-content']}
+                  >
+                    <ReactMarkdown>{getCurrentSummary()}</ReactMarkdown>
+                  </div>
                 </>
               ) : (
                 <p className={styles['loading']}>No summary available for this PDF.</p>
