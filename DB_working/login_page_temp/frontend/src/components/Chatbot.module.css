@@ -51,22 +51,22 @@
   flex: 1;
   padding: 10px;
   overflow-y: auto;
-  font-size: 14px;
+  font-size: 17px;
 }
 .chat-msg {
   margin: 6px 0;
-  padding: 8px 12px;
+  padding: 1px 12px;
   border-radius: 12px;
-  max-width: 75%;
+  max-width: 70%;
 }
 .chat-msg.user {
   background: linear-gradient(90deg, #00ff9c, #00d68a);
   color: #000;
   margin-left: auto;
-  box-shadow: 0 0 10px rgba(0, 255, 156, 0.18);
+  box-shadow: 0 0 10px rgba(63, 169, 62, 0.18);
 }
 .chat-msg.bot {
-  background: rgba(14, 25, 27, 0.6);
+  background: rgba(18, 119, 35, 0.6);
   color: #D6D9D8;
   margin-right: auto;
   border: 1px solid rgba(0, 255, 156, 0.2);
@@ -222,3 +222,39 @@
   0 0 20px rgba(0, 255, 156, 0.18);
 }
 
+/* --- ADD THIS TO Chatbot.module.css --- */
+
+/* Styles for rendered Markdown inside a bot message */
+.chat-msg.bot p {
+  /* Prevent default paragraph margins from adding too much space */
+  margin: 0.25em 0;
+}
+
+.chat-msg.bot h1,
+.chat-msg.bot h2,
+.chat-msg.bot h3,
+.chat-msg.bot h4,
+.chat-msg.bot h5 {
+  color: #00ff9c; /* Use your neon green for headings */
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  font-size: 1.1em; /* Make headings slightly larger than text */
+}
+
+.chat-msg.bot ul,
+.chat-msg.bot ol {
+  padding-left: 25px; /* Indent lists */
+  margin: 0.5em 0;
+}
+
+.chat-msg.bot li {
+  margin-bottom: 5px; /* Space out list items */
+}
+
+.chat-msg.bot strong {
+  color: #00ff9c; /* Make bold text green */
+  font-weight: 600;
+}
+
+/* --- END OF NEW STYLES --- */

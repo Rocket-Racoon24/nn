@@ -1,6 +1,7 @@
 // src/components/Chatbot.js
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './Chatbot.module.css'; // You will need to create Chatbot.module.css
+import ReactMarkdown from 'react-markdown'; // <-- This is correctly imported
 
 const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
   // All chatbot state is now local to this component
@@ -11,7 +12,7 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const fileInputRef = useRef(null);
   const chatbotBodyRef = useRef(null);
-  const textareaRef = useRef(null); // <-- ADDED: Ref for auto-growing textarea
+  const textareaRef = useRef(null); // <-- Ref for auto-growing textarea
 
   // Load chat memory from sessionStorage on mount
   useEffect(() => {
@@ -158,7 +159,8 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
              <div className={styles['chatbot-body']} ref={chatbotBodyRef}>
                  {chatMessages.map((msg, i) => (
                      <div key={i} className={`${styles['chat-msg']} ${msg.sender === 'user' ? styles['user'] : styles['bot']}`}>
-                         {msg.text}
+                         {/* FIX 2: Use ReactMarkdown to render text */}
+                         <ReactMarkdown>{msg.text}</ReactMarkdown>
                      </div>
                  ))}
              </div>
@@ -216,6 +218,7 @@ const Chatbot = ({ onSummaryGenerated, onAskFromSelection }) => {
       )}
     </>
   );
-};
+}; // <-- FIX 1: This curly brace was in the wrong place
 
 export default Chatbot;
+// FIX 1: The extra '}' at the end of the file was deleted.

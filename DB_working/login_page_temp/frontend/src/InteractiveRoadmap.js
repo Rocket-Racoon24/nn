@@ -4,119 +4,27 @@ import { useNavigate } from 'react-router-dom';
 import useTextSelection from './components/TextSelection'; // Assuming path is correct
 import './styles/Roadmap.css';
 
-// Component for displaying sub-details when a study item is clicked
-function StudyItemDetail({ term, context, onBack }) {
-  const [subDetails, setSubDetails] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+// ====================================================================
+// StudyItemDetail (NOW A "DUMB" COMPONENT)
+// It no longer fetches data. It just renders props.
+// ====================================================================
+function StudyItemDetail({ term, subDetails, isLoading, error, context }) {
   const renderCount = useRef(0);
   renderCount.current++;
   console.log("🔁 StudyItemDetail render:", renderCount.current, {
     term,
     isLoading,
     error,
-    subDetails,
   });
 
-  useEffect(() => {
-    console.log("Re-render: StudyItemDetail");
-  });
-
-  // Callback for text selection
+  // Callback for text selection (no change here)
   const handleAskXiao = useCallback((selectedText) => {
-    // This event dispatch is a great way to communicate with a global listener
     window.dispatchEvent(new CustomEvent('askXiao', { detail: selectedText }));
-  }, []); // empty dependency → stable reference
+  }, []);
 
-  // UPDATED: The hook now ONLY returns the ref.
-  // The button is managed internally by the hook.
   const containerRef = useTextSelection(handleAskXiao);
 
-  useEffect(() => {
-    const fetchSubDetails = async () => {
-      setIsLoading(true);
-      setError('');
-      setSubDetails(null); // Clear previous content when loading
-      try {
-        const token = localStorage.getItem('token');
-        
-        // First check if we have saved sub-details
-        const savedResponse = await fetch(
-          `http://localhost:5000/get_notes?topic=${encodeURIComponent(context)}&note_type=sub_details`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        
-        if (savedResponse.ok) {
-          const savedData = await savedResponse.json();
-          const savedNote = savedData.notes.find(
-            note => note.metadata && note.metadata.term === term
-          );
-          if (savedNote) {
-            setSubDetails(savedNote.content);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // If no saved sub-details, generate new ones
-        const response = await fetch('http://localhost:5000/generate_sub_details', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ term, context }),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          if (response.status === 503) {
-            throw new Error("AI is offline. Please start the LLM server on port 8080 and try again.");
-          } else {
-            throw new Error(errorData.error || "Failed to generate sub-details");
-          }
-        }
-        const data = await response.json();
-        
-        // Clean the HTML response
-        let htmlContent = data.sub_details.trim();
-        if (htmlContent.startsWith("```html")) {
-          htmlContent = htmlContent.slice(7);
-        }
-        if (htmlContent.endsWith("```")) {
-          htmlContent = htmlContent.slice(0, -3);
-        }
-        htmlContent = htmlContent.trim();
-        
-        // Add Wikipedia link
-        const encodedTerm = encodeURIComponent(term);
-        const encodedContext = encodeURIComponent(context);
-        const wikiLink = `https://en.wikipedia.org/w/index.php?search=${encodedTerm}+${encodedContext}`;
-        
-        const furtherReadingHTML = `
-          <hr style="margin-top: 25px; border: 0; border-top: 1px solid rgba(0, 255, 156, 0.2);">
-          <h3>Further Reading</h3>
-          <p>
-            <a href="${wikiLink}" target="_blank" rel="noopener noreferrer" style="color: #00ff9c; text-decoration: none;">
-              &rarr; Search for "${term}" on Wikipedia
-            </a>
-          </p>
-        `;
-        
-        htmlContent += furtherReadingHTML;
-        setSubDetails(htmlContent);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (term && context) {
-      fetchSubDetails();
-    }
-  }, [term, context]);
-
+  // This simple "no term" placeholder is all that's needed now
   if (!term) {
     return (
       <div className="detail-view-right-panel">
@@ -130,13 +38,9 @@ function StudyItemDetail({ term, context, onBack }) {
   return (
     <div className="detail-view-right-panel">
       <div 
-        ref={containerRef} // Ref is attached here, as before
+        ref={containerRef} // Ref is attached here
         className="study-item-detail-display" 
-        // This div needs `position: relative` from CSS (which it has)
       >
-        {/* UPDATED: We no longer render {AskButton} here. */}
-        {/* The hook injects the button into this div's DOM node. */}
-        
         {isLoading && (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <p className="loading-text">Generating details...</p>
@@ -149,16 +53,21 @@ function StudyItemDetail({ term, context, onBack }) {
           </div>
         )}
         {!isLoading && !error && subDetails && <div dangerouslySetInnerHTML={{ __html: subDetails }} />}
+        
+        {/* Handles the case where a term is selected but has no details/is not loading */}
         {!isLoading && !error && !subDetails && (
-          <p className="placeholder-text">Select a topic from the left to view details.</p>
+          <p className="placeholder-text">Loading...</p>
         )}
       </div>
     </div>
   );
 }
 
-// Study Item component for the left sidebar
-function StudyItem({ item, isActive, onClick }) {
+// ====================================================================
+// StudyItem (List Item Component)
+// --- MODIFIED: Added 'hasNotification' prop to show a '!'
+// ====================================================================
+function StudyItem({ item, isActive, onClick, hasNotification }) {
   return (
     <div 
       className={`study-item ${isActive ? 'active' : ''}`}
@@ -166,17 +75,39 @@ function StudyItem({ item, isActive, onClick }) {
       onClick={onClick}
     >
       <div className="study-item-header">
-        <p><strong>{item.term}:</strong> {item.definition}</p>
+        <p>
+          {/* Dot is moved from here */}
+          <strong>{item.term}:</strong> {item.definition}
+        </p>
+        {/* To here, as a sibling of <p> */}
+        {hasNotification && <span className="notification-dot">!</span>}
       </div>
     </div>
   );
 }
 
-// Detail View Component (master-detail layout)
+// ====================================================================
+// DetailView Component (Master View)
+// --- MODIFIED: Now manages all fetching and state
+// ====================================================================
 function DetailView({ topicTitle, details, onBack, mainTopic }) {
   const [selectedTerm, setSelectedTerm] = useState(null);
   const [allStudyItems, setAllStudyItems] = useState([]);
 
+  // --- NEW STATE: Lifted from StudyItemDetail ---
+  const [subDetailCache, setSubDetailCache] = useState({});
+  const [currentSubDetails, setCurrentSubDetails] = useState(null);
+  const [isSubDetailLoading, setIsSubDetailLoading] = useState(false);
+  const [subDetailError, setSubDetailError] = useState('');
+  
+  // --- NEW STATE: For notifications ---
+  const [newlyLoadedTerms, setNewlyLoadedTerms] = useState(new Set());
+  
+  // Ref to track the current selected term inside async fetches
+  const selectedTermRef = useRef(null);
+  selectedTermRef.current = selectedTerm;
+
+  // Effect to parse the list of items from props
   useEffect(() => {
     if (details && Array.isArray(details)) {
       const items = [];
@@ -188,23 +119,138 @@ function DetailView({ topicTitle, details, onBack, mainTopic }) {
         }
       });
       setAllStudyItems(items);
-      // Logic to auto-select first item
+      
+      // Auto-select first item
       if (items.length > 0) {
-        // Only auto-select if selectedTerm is currently null
-        // or if the previously selected term is no longer in the list
-        // (e.g. new details loaded)
-        // This check prevents re-setting selection if user already clicked
         const currentSelectionValid = items.some(item => item.term === selectedTerm);
         if (!selectedTerm || !currentSelectionValid) {
-           setSelectedTerm(items[0].term);
+           handleItemClick(items[0].term); // Use handleItemClick to trigger fetch
         }
       }
     }
-  }, [details, selectedTerm]); // Keep selectedTerm dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [details]); // removed selectedTerm, handleItemClick to prevent re-loops
 
-  const handleItemClick = (term) => {
-    setSelectedTerm(term);
+  // --- NEW: Async fetch function (moved from StudyItemDetail) ---
+  const fetchSubDetails = async (termToFetch, context) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // 1. Check for saved notes (from DB, not local cache)
+      const savedResponse = await fetch(
+        `http://localhost:5000/get_notes?topic=${encodeURIComponent(context)}&note_type=sub_details`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (savedResponse.ok) {
+        const savedData = await savedResponse.json();
+        const savedNote = savedData.notes.find(
+          note => note.metadata && note.metadata.term === termToFetch
+        );
+        if (savedNote) {
+          return savedNote.content; // Return the HTML content
+        }
+      }
+      
+      // 2. If not saved, generate new one
+      const response = await fetch('http://localhost:5000/generate_sub_details', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ term: termToFetch, context }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 503) {
+          throw new Error("AI is offline. Please start the LLM server on port 8080 and try again.");
+        } else {
+          throw new Error(errorData.error || "Failed to generate sub-details");
+        }
+      }
+      const data = await response.json();
+      
+      // 3. Clean and return HTML content
+      let htmlContent = data.sub_details.trim();
+      if (htmlContent.startsWith("```html")) htmlContent = htmlContent.slice(7);
+      if (htmlContent.endsWith("```")) htmlContent = htmlContent.slice(0, -3);
+      htmlContent = htmlContent.trim();
+      
+      const encodedTerm = encodeURIComponent(termToFetch);
+      const encodedContext = encodeURIComponent(context);
+      const wikiLink = `https://en.wikipedia.org/w/index.php?search=${encodedTerm}+${encodedContext}`;
+      
+      const furtherReadingHTML = `
+        <hr style="margin-top: 25px; border: 0; border-top: 1px solid rgba(0, 255, 156, 0.2);">
+        <h3>Further Reading</h3>
+        <p>
+          <a href="${wikiLink}" target="_blank" rel="noopener noreferrer" style="color: #00ff9c; text-decoration: none;">
+            &rarr; Search for "${termToFetch}" on Wikipedia
+          </a>
+        </p>
+      `;
+      
+      return htmlContent + furtherReadingHTML;
+
+    } catch (err) {
+      // Re-throw the error to be caught by the caller
+      throw err;
+    }
   };
+
+  // --- NEW: Click handler now manages state and triggers fetch ---
+  const handleItemClick = useCallback((term) => {
+    setSelectedTerm(term);
+    setSubDetailError(''); // Clear previous errors
+
+    // Clear notification for this term
+    setNewlyLoadedTerms(prev => {
+      if (prev.has(term)) {
+        const newSet = new Set(prev);
+        newSet.delete(term);
+        return newSet;
+      }
+      return prev; // No change
+    });
+
+    // Check cache
+    if (subDetailCache[term]) {
+      // Load from cache
+      setCurrentSubDetails(subDetailCache[term]);
+      setIsSubDetailLoading(false);
+    } else {
+      // Not in cache, show loading and fetch
+      setIsSubDetailLoading(true);
+      setCurrentSubDetails(null); // Clear old content
+      
+      fetchSubDetails(term, mainTopic)
+        .then(htmlContent => {
+          // Add to cache
+          setSubDetailCache(prevCache => ({ ...prevCache, [term]: htmlContent }));
+
+          // --- THIS SOLVES THE RACE CONDITION ---
+          // Only update UI if the user is still looking at this term
+          if (selectedTermRef.current === term) {
+            setCurrentSubDetails(htmlContent);
+            setIsSubDetailLoading(false);
+          } else {
+            // User has clicked away. Don't update UI, but add notification
+            setNewlyLoadedTerms(prev => new Set(prev).add(term));
+          }
+        })
+        .catch(err => {
+          // Also check if user is still on this term before showing error
+          if (selectedTermRef.current === term) {
+            setSubDetailError(err.message);
+            setIsSubDetailLoading(false);
+          }
+          // If user clicked away, just log it
+          console.error(`Failed to fetch ${term}:`, err.message);
+        });
+    }
+  }, [mainTopic, subDetailCache]); // Dependencies
 
   return (
     <div className="roadmap-detail-view">
@@ -226,22 +272,30 @@ function DetailView({ topicTitle, details, onBack, mainTopic }) {
                   item={item}
                   isActive={selectedTerm === item.term}
                   onClick={() => handleItemClick(item.term)}
+                  // NEW: Pass notification status
+                  hasNotification={newlyLoadedTerms.has(item.term)}
                 />
               ))}
             </div>
           ))}
         </div>
         
+        {/* MODIFIED: Pass all state down as props */}
         <StudyItemDetail 
           term={selectedTerm} 
           context={mainTopic}
+          subDetails={currentSubDetails}
+          isLoading={isSubDetailLoading}
+          error={subDetailError}
         />
       </div>
     </div>
   );
 }
 
-// Main InteractiveRoadmap Component
+// ====================================================================
+// Main InteractiveRoadmap Component (No significant changes needed)
+// ====================================================================
 function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
@@ -290,18 +344,12 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
       }
     };
     
-    // Listen for cross-tab storage changes
     window.addEventListener('storage', handleStorageChange);
     
-    // This interval is good for same-tab, but let's make it
-    // less frequent and also use the 'storage' event which is better.
-    // We'll keep the interval as a fallback for same-tab updates
-    // that don't fire 'storage' event.
     const interval = setInterval(() => {
         const completionData = JSON.parse(localStorage.getItem('roadmapCompletion')) || {};
         const topicData = completionData[topicTitle];
         if (topicData) {
-          // Check if completion is different before setting state
           setCompletion(prevCompletion => {
             const newCompleted = topicData.completedModules || [];
             if (prevCompletion.completedModules.length !== newCompleted.length) {
@@ -321,23 +369,25 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
     };
   }, [topicTitle, topics.length]);
 
+  useEffect(() => {
+    setViewMode('list');
+    setSelectedTopicId(null);
+  }, [topicTitle]);
+
   const handleModuleClick = async (topic) => {
     const cacheKey = topic.id;
     
-    // If already loaded, show detail view
     if (detailsCache[cacheKey]) {
       setViewMode('detail');
       setSelectedTopicId(cacheKey);
       return;
     }
 
-    // Show loading
     setLoadingTopics(prev => new Set(prev).add(cacheKey));
 
     try {
       const token = localStorage.getItem('token');
       
-      // First check if we have saved details
       const savedResponse = await fetch(
         `http://localhost:5000/get_notes?topic=${encodeURIComponent(topic.title)}&note_type=details`,
         { headers: { 'Authorization': `Bearer ${token}` } }
@@ -347,13 +397,11 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
       if (savedResponse.ok) {
         const savedData = await savedResponse.json();
         if (savedData.notes && savedData.notes.length > 0) {
-          // Handle both array and object content
           const content = savedData.notes[0].content;
           details = Array.isArray(content) ? content : (content.details || content);
         }
       }
       
-      // If no saved details, generate new ones
       if (!details) {
         const response = await fetch('http://localhost:5000/generate_details', {
           method: 'POST',
@@ -376,7 +424,6 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
         details = data.details;
       }
       
-      // Cache the details
       setDetailsCache(prev => ({ ...prev, [cacheKey]: details }));
       setSelectedTopicId(cacheKey);
       setViewMode('detail');
@@ -393,13 +440,12 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
 
   const handleBackToList = () => {
     setViewMode('list');
-    setSelectedTopicId(null); // Clear selected topic
+    setSelectedTopicId(null);
   };
 
   const selectedTopic = topics.find(t => t.id === selectedTopicId);
   const selectedDetails = selectedTopic ? detailsCache[selectedTopicId] : null;
 
-  // Calculate completion percentage
   const completionPercent = completion.totalModules > 0 
     ? Math.round((completion.completedModules.length / completion.totalModules) * 100)
     : 0;
@@ -450,12 +496,10 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch }) {
       </div>
       
       <div className="roadmap-footer">
-        {/* FIX 1: Changed className.completion-bar" to className="completion-bar" */}
         <div className="completion-bar">
           Roadmap completion: {completionPercent}%
         </div>
         <button
-          // FIX 2: Changed TtopicTitle to topicTitle
           onClick={() => navigate(`/quiz?topic=${encodeURIComponent(topicTitle)}&mainTopic=${encodeURIComponent(topicTitle)}`)}
           className="footer-button quiz-link"
         >

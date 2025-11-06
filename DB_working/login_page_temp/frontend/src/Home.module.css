@@ -16,6 +16,7 @@
   padding: 20px;
   position: relative; /* ensures dropdown is positioned correctly */
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* STYLES FOR RoadmapGenerator */
