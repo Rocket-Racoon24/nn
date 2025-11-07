@@ -329,7 +329,6 @@ const SummaryView = ({ summaryContent, onBack }) => {
     return null;
   };
 
-  // Show flashcards view if active
   if (showFlashcards) {
     return (
       <>
@@ -359,7 +358,6 @@ const SummaryView = ({ summaryContent, onBack }) => {
     );
   }
 
-  // Show tabs interface
   return (
     <>
       <div className={styles['summary-view']}>
@@ -382,79 +380,79 @@ const SummaryView = ({ summaryContent, onBack }) => {
             </div>
           </div>
         ) : (
-          <>
-            <h2 className={styles['neon']}>PDF Summaries</h2>
-            
-            {/* Tabs Container */}
-            <div className={styles['tabs-container']}>
-              {pdfSummaries.map((pdf, index) => (
-                <div
-                  key={index}
-                  className={`${styles['tab-wrapper']} ${activeTab === pdf.pdf_name ? styles['tab-active'] : ''}`}
-                >
-                  <button
-                    className={`${styles['tab']} ${activeTab === pdf.pdf_name ? styles['tab-active'] : ''}`}
-                    onClick={(e) => handleTabClick(pdf.pdf_name, e)}
+          <div className={styles['summary-layout']}>
+            <aside className={styles['summary-sidebar']}>
+              <h3 className={styles['sidebar-title']}>Saved Summaries</h3>
+              <div className={styles['summary-list']}>
+                {pdfSummaries.map((pdf, index) => (
+                  <div
+                    key={index}
+                    className={`${styles['summary-item']} ${activeTab === pdf.pdf_name ? styles['summary-item-active'] : ''}`}
                   >
-                    📄 {pdf.pdf_name}
-                  </button>
-                  <div className={styles['tab-menu-container']}>
                     <button
-                      className={styles['menu-button']}
-                      data-menu-button
-                      onClick={(e) => handleMenuToggle(pdf.pdf_name, e)}
-                      title="More options"
+                      className={styles['summary-item-button']}
+                      onClick={(e) => handleTabClick(pdf.pdf_name, e)}
                     >
-                      ⋯
+                      <span className={styles['summary-item-icon']}>📄</span>
+                      <span className={styles['summary-item-text']}>{pdf.pdf_name}</span>
                     </button>
-                    {openMenu === pdf.pdf_name && (
-                      <div
-                        ref={el => menuRefs.current[pdf.pdf_name] = el}
-                        className={styles['tab-menu']}
-                        data-tab-menu
-                        onClick={(e) => e.stopPropagation()}
+                    <div className={styles['summary-item-actions']}>
+                      <button
+                        className={styles['menu-button']}
+                        data-menu-button
+                        onClick={(e) => handleMenuToggle(pdf.pdf_name, e)}
+                        title="More options"
                       >
-                        <button
-                          className={styles['flashcard-button']}
-                          onClick={(e) => handleGenerateFlashcards(pdf.pdf_name, e)}
+                        ⋯
+                      </button>
+                      {openMenu === pdf.pdf_name && (
+                        <div
+                          ref={el => menuRefs.current[pdf.pdf_name] = el}
+                          className={styles['tab-menu']}
+                          data-tab-menu
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          📚 Flashcards
-                        </button>
-                        <button
-                          className={styles['delete-button']}
-                          onClick={(e) => handleDelete(pdf.pdf_name, e)}
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-                    )}
+                          <button
+                            className={styles['flashcard-button']}
+                            onClick={(e) => handleGenerateFlashcards(pdf.pdf_name, e)}
+                          >
+                            📚 Flashcards
+                          </button>
+                          <button
+                            className={styles['delete-button']}
+                            onClick={(e) => handleDelete(pdf.pdf_name, e)}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                ))}
+              </div>
+            </aside>
+            <section className={styles['summary-panel']}>
+              {error && <p className={styles['error']}>{error}</p>}
+              {loadingSummaries[activeTab] ? (
+                <div className={styles['summary-content-box']}>
+                  <p className={styles['loading']}>Loading summary...</p>
                 </div>
-              ))}
-            </div>
-
-            {/* Tab Content */}
-            {error && <p className={styles['error']}>{error}</p>}
-            
-            {loadingSummaries[activeTab] ? (
-              <div className={styles['summary-content-box']}>
-                <p className={styles['loading']}>Loading summary...</p>
-              </div>
-            ) : (
-              <div className={styles['summary-content-box']} style={{ position: 'relative' }}>
-                {getCurrentSummary() ? (
-                  <div 
-                    ref={summaryContainerRef} 
-                    className={styles['markdown-content']}
-                  >
-                    <ReactMarkdown>{getCurrentSummary()}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className={styles['loading']}>No summary available for this PDF.</p>
-                )}
-              </div>
-            )}
-          </>
+              ) : (
+                <div className={styles['summary-content-box']} style={{ position: 'relative' }}>
+                  {getCurrentSummary() ? (
+                    <div 
+                      ref={summaryContainerRef} 
+                      className={styles['markdown-content']}
+                    >
+                      <ReactMarkdown>{getCurrentSummary()}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className={styles['loading']}>Select a summary to view its content.</p>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
         )}
       </div>
       {confirmDialog && (

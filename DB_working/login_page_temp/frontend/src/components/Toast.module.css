@@ -1,8 +1,9 @@
 .toast {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  max-width: 400px;
+  top: 24px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  max-width: 420px;
   padding: 16px 20px;
   border-radius: 12px;
   display: flex;
@@ -12,35 +13,35 @@
   font-weight: 500;
   font-size: 0.95rem;
   z-index: 9998;
-  animation: slideInRight 0.3s ease-out;
+  animation: slideDownCenter 0.3s ease-out;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(4px);
 }
 
-@keyframes slideInRight {
+@keyframes slideDownCenter {
   from {
-    transform: translateX(400px);
+    transform: translate(-50%, -60px);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translate(-50%, 0);
     opacity: 1;
   }
 }
 
-@keyframes slideOutRight {
+@keyframes slideUpCenter {
   from {
-    transform: translateX(0);
+    transform: translate(-50%, 0);
     opacity: 1;
   }
   to {
-    transform: translateX(400px);
+    transform: translate(-50%, -60px);
     opacity: 0;
   }
 }
 
 .toast.removing {
-  animation: slideOutRight 0.3s ease-in;
+  animation: slideUpCenter 0.3s ease-in;
 }
 
 .toast-content {
@@ -146,30 +147,31 @@
 
 @media (max-width: 600px) {
   .toast {
-    bottom: 10px;
-    right: 10px;
-    left: 10px;
+    top: 16px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: calc(100% - 20px);
     max-width: none;
   }
 
-  @keyframes slideInRight {
+  @keyframes slideDownCenter {
     from {
-      transform: translateY(100px);
+      transform: translate(-50%, -40px);
       opacity: 0;
     }
     to {
-      transform: translateY(0);
+      transform: translate(-50%, 0);
       opacity: 1;
     }
   }
 
-  @keyframes slideOutRight {
+  @keyframes slideUpCenter {
     from {
-      transform: translateY(0);
+      transform: translate(-50%, 0);
       opacity: 1;
     }
     to {
-      transform: translateY(100px);
+      transform: translate(-50%, -40px);
       opacity: 0;
     }
   }
