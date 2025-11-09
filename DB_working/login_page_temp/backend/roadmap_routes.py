@@ -97,7 +97,7 @@ You are an expert quiz designer. Create a quiz for the topic: "{topic}".
 
 Your response must be a single valid JSON object with one key: "questions".
 
-The value should be an array of {num_questions} objects.
+The value MUST be an array of EXACTLY {num_questions} objects. Do NOT generate more or fewer.
 
 You must generate:
 
@@ -105,16 +105,18 @@ You must generate:
 
 - {num_descriptive} Descriptive questions.
 
-Format MCQ questions as:
+Rules:
+- MCQ must include exactly 4 options and one correct answer.
+- Descriptive must include an "ideal_answer" rubric.
+- Do NOT include any commentary or markdown, only JSON.
 
+Format MCQ questions as:
 {{"type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "answer": "..."}}
 
 Format Descriptive questions as:
-
 {{"type": "descriptive", "question": "...", "ideal_answer": "A detailed rubric or ideal answer for grading."}}
 
 Mix the questions together in the array.
-
 """
     return instructions
 
@@ -125,19 +127,27 @@ def generate_roadmap():
     data = request.get_json()
     topic = data.get('query')
     user_email = request.user['email']
-    
-    # Let AI decide if the topic is valid - removed strict validation
-    # AI will handle topic validation in the prompt itself
-    
+
+    # Early-exit if the roadmap for this topic already exists (by original or corrected later)
     try:
+        # First check with the provided topic directly
+        existing_roadmap = DatabaseOperations.get_roadmap_by_topic(user_email, topic)
+        if existing_roadmap:
+            return jsonify({
+                "message": "Roadmap for this topic already exists.",
+                "exists": True,
+                "topic": existing_roadmap.get('topic', topic)
+            }), 409
+
+        # If not found by direct topic, we still need LLM to possibly correct the topic name.
         prompt = create_roadmap_prompt(topic)
         response_str = get_local_llm_response(prompt)
-        
+
         match = re.search(r'\[.*\]', response_str, re.DOTALL)
         if not match:
             raise ValueError("Could not find valid JSON array in LLM response")
         roadmap = json.loads(match.group(0))
-        
+
         # Extract corrected topic name from the response
         corrected_topic = topic  # Default to original
         corrected_match = re.search(r'###CORRECTED_TOPIC###:\s*(.+)', response_str, re.IGNORECASE)
@@ -148,32 +158,24 @@ def generate_roadmap():
             first_title = roadmap[0].get('title', '')
             if first_title and len(first_title) < 50:  # Reasonable topic name length
                 corrected_topic = first_title
-        
+
+        # Re-check existence with corrected topic name
+        existing_corrected = DatabaseOperations.get_roadmap_by_topic(user_email, corrected_topic)
+        if existing_corrected:
+            return jsonify({
+                "message": "Roadmap for this topic already exists.",
+                "exists": True,
+                "topic": corrected_topic
+            }), 409
+
         # Save roadmap to database with corrected topic name
         roadmap_data = {
             'topics': roadmap,
             'generated_at': DatabaseOperations.get_current_timestamp()
         }
-        
-        # Check if roadmap already exists for this topic (by original or corrected)
-        existing_roadmap = DatabaseOperations.get_roadmap_by_topic(user_email, topic)
-        if not existing_roadmap:
-            existing_roadmap = DatabaseOperations.get_roadmap_by_topic(user_email, corrected_topic)
-        
-        if existing_roadmap:
-            # Update existing roadmap with new data and corrected topic
-            DatabaseOperations.update_roadmap(user_email, existing_roadmap.get('topic', topic), roadmap_data)
-            # If topic changed, also update the topic field
-            if existing_roadmap.get('topic') != corrected_topic:
-                from db_operations import roadmaps_collection
-                roadmaps_collection.update_one(
-                    {"user_email": user_email, "topic": existing_roadmap.get('topic', topic)},
-                    {"$set": {"topic": corrected_topic}}
-                )
-        else:
-            DatabaseOperations.save_roadmap(user_email, corrected_topic, roadmap_data)
-        
-        return jsonify({"topics": roadmap, "topic": corrected_topic})
+        DatabaseOperations.save_roadmap(user_email, corrected_topic, roadmap_data)
+
+        return jsonify({"topics": roadmap, "topic": corrected_topic, "exists": False}), 200
     except LLMConnectionError as e:
         return jsonify({"error": str(e)}), 503
     except Exception as e:
@@ -296,16 +298,62 @@ def generate_quiz():
         if not isinstance(quiz_data['questions'], list):
             raise ValueError("'questions' must be an array")
         
-        # Normalize questions (ensure required fields for evaluation)
+        questions = quiz_data['questions']
+        # Ensure exact number of questions by trimming or topping up
+        def normalize_q_list(qs):
+            out = []
+            for q in qs:
+                t = (q.get('type') or 'mcq').lower()
+                if t == 'mcq':
+                    out.append({
+                        'type': 'mcq',
+                        'question': q.get('question', ''),
+                        'options': (q.get('options') or [])[:4],
+                        'answer': q.get('answer')
+                    })
+                else:
+                    out.append({
+                        'type': 'descriptive',
+                        'question': q.get('question', ''),
+                        'ideal_answer': q.get('ideal_answer', '')
+                    })
+            return out
+        questions = normalize_q_list(questions)
+
+        # Trim if too many
+        if len(questions) > num_questions:
+            questions = questions[:num_questions]
+
+        # Top-up if too few (attempt one supplemental generation)
+        if len(questions) < num_questions:
+            missing = num_questions - len(questions)
+            supplement_prompt = create_quiz_prompt(topic, missing, quiz_type)
+            supplement_response = get_local_llm_response(supplement_prompt)
+            m2 = re.search(r'\{.*\}', supplement_response, re.DOTALL)
+            more = []
+            try:
+                parsed = json.loads(m2.group(0)) if m2 else json.loads(supplement_response)
+                more = normalize_q_list(parsed.get('questions', []))
+            except Exception:
+                more = []
+            questions.extend(more[:missing])
+
+        # As final guard, if still short, duplicate last with minor marker
+        while len(questions) < num_questions and questions:
+            clone = dict(questions[-1])
+            clone['question'] = clone.get('question', '') + ' (variant)'
+            questions.append(clone)
+
+        # Re-index ids
         normalized_questions = []
-        for idx, q in enumerate(quiz_data['questions']):
+        for idx, q in enumerate(questions):
             nq = {
-                "id": idx + 1,
-                "type": q.get("type", "mcq"),
-                "question": q.get("question", ""),
-                "options": q.get("options") if q.get("type") == "mcq" else None,
-                "answer": q.get("answer") if q.get("type") == "mcq" else None,
-                "ideal_answer": q.get("ideal_answer") if q.get("type") == "descriptive" else None,
+                'id': idx + 1,
+                'type': q.get('type', 'mcq'),
+                'question': q.get('question', ''),
+                'options': q.get('options') if q.get('type') == 'mcq' else None,
+                'answer': q.get('answer') if q.get('type') == 'mcq' else None,
+                'ideal_answer': q.get('ideal_answer') if q.get('type') == 'descriptive' else None,
             }
             normalized_questions.append(nq)
 
@@ -336,6 +384,43 @@ def generate_quiz():
         return jsonify({"error": f"Failed to parse JSON from LLM response: {str(e)}. Response preview: {response_preview}"}), 500
     except Exception as e:
         return jsonify({"error": f"An error occurred while parsing the quiz: {str(e)}"}), 500
+
+@roadmap_bp.route("/explain_quiz", methods=["POST"])
+@token_required
+def explain_quiz():
+    data = request.get_json()
+    q_type = data.get('type')  # 'mcq' or 'descriptive'
+    question = data.get('question')
+    correct_answer = data.get('correct_answer')  # for mcq
+    ideal_answer = data.get('ideal_answer')      # for descriptive
+    user_answer = data.get('user_answer')
+
+    if not question or q_type not in ('mcq', 'descriptive'):
+        return jsonify({"error": "Invalid payload"}), 400
+
+    try:
+        if q_type == 'mcq':
+            prompt = f"""
+You are a tutor. Explain succinctly why the correct answer is correct and others are not.
+Question: {question}
+Correct Answer: {correct_answer}
+User Answer: {user_answer}
+Return a short paragraph followed by 2-3 bullet points.
+"""
+        else:
+            prompt = f"""
+You are a tutor. Compare the user's answer to the ideal answer and explain key gaps.
+Question: {question}
+Ideal Answer: {ideal_answer}
+User Answer: {user_answer}
+Return a short paragraph followed by 2-3 bullet points.
+"""
+        explanation = get_local_llm_response(prompt)
+        return jsonify({"explanation": explanation}), 200
+    except LLMConnectionError as e:
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate explanation: {str(e)}"}), 500
 
 # New route to get user's saved roadmaps
 @roadmap_bp.route("/get_roadmaps", methods=["GET"])
@@ -381,6 +466,7 @@ def save_quiz_attempt():
     user_answers = data.get('user_answers')    # array of answers aligned with questions
     scores = data.get('scores')                # {mcqScore, mcqTotal, descriptiveScore, descriptiveTotal, finalScore, finalTotal}
     passed = bool(data.get('passed', False))
+    is_final = bool(data.get('final_quiz', False))
 
     if not topic or not quiz_type or not isinstance(questions_snapshot, list) or not isinstance(user_answers, list) or not isinstance(scores, dict):
         return jsonify({"error": "Invalid payload"}), 400
@@ -405,6 +491,14 @@ def save_quiz_attempt():
         # Update status for mandatory quizzes
         if quiz_type in ("MCQ", "Descriptive"):
             DatabaseOperations.set_quiz_status(user_email, topic, quiz_type, passed)
+
+        # Award XP on passed attempts
+        if passed:
+            try:
+                delta = 100 if is_final else 40
+                DatabaseOperations.add_xp(user_email, delta)
+            except Exception:
+                pass
 
         return jsonify({"message": "Quiz attempt saved"}), 200
     except Exception as e:
@@ -570,3 +664,86 @@ def analyze_answers():
         return jsonify({"graded_answers": graded_results})
     except Exception as e:
         return jsonify({"error": f"An error occurred while analyzing answers: {str(e)}"}), 500
+
+# --- Flashcard Generation Endpoint ---
+@roadmap_bp.route("/generate_flashcards_for_note", methods=["POST"])
+@token_required
+def generate_flashcards_for_note():
+    """Generate flashcards from sub-details notes. Fetch from DB if already exists."""
+    data = request.get_json()
+    topic = data.get('topic')  # main topic/context
+    term = data.get('term')    # sub-heading term
+    user_email = request.user['email']
+    
+    if not topic or not term:
+        return jsonify({"error": "Missing topic or term"}), 400
+    
+    try:
+        # 1. Check if flashcards already exist in database
+        existing_notes = DatabaseOperations.get_user_notes(user_email, topic=topic, note_type='flashcards')
+        for note in existing_notes:
+            if note.get('metadata', {}).get('term') == term:
+                # Return cached flashcards
+                return jsonify({"flashcards": note.get('content', []), "cached": True}), 200
+        
+        # 2. Fetch sub_details note content to generate flashcards from
+        notes = DatabaseOperations.get_user_notes(user_email, topic=topic, note_type='sub_details')
+        note = None
+        for n in notes:
+            if n.get('metadata', {}).get('term') == term:
+                note = n
+                break
+        
+        if not note:
+            return jsonify({"error": "No sub-details found for this term. Generate details first."}), 404
+        
+        content_html = note.get('content', '')
+        # Strip simple HTML tags to improve flashcard generation
+        text = re.sub('<[^<]+?>', ' ', content_html)
+        text = re.sub('\\s+', ' ', text).strip()
+        
+        # 3. Generate flashcards using AI
+        prompt = f"""
+### INSTRUCTIONS ###
+You are an expert educator. Create flashcards from the provided note text.
+Return ONLY a valid JSON array. Each item must be an object with fields: "question" and "answer".
+Generate as many cards as needed to cover key points (typically 8-20 based on content importance).
+Avoid duplicates; make questions concise and answers clear.
+
+### NOTE TEXT ###
+{text}
+"""
+        response_str = get_local_llm_response(prompt)
+        
+        # Check for LLM connection error
+        if response_str.startswith("Error connecting to local LLM server"):
+            return jsonify({"error": "AI is offline. Please start the LLM server on port 8080 and try again."}), 503
+        
+        # Parse JSON array from response
+        match = re.search(r'\\[.*\\]', response_str, re.DOTALL)
+        if not match:
+            try:
+                flashcards = json.loads(response_str)
+            except Exception:
+                return jsonify({"error": "Could not parse flashcards from AI response"}), 500
+        else:
+            flashcards = json.loads(match.group(0))
+        
+        if not isinstance(flashcards, list):
+            return jsonify({"error": "Invalid flashcards format"}), 500
+        
+        # 4. Save flashcards to database for future use
+        DatabaseOperations.save_note(
+            user_email, 
+            topic, 
+            'flashcards', 
+            flashcards, 
+            {"term": term, "source": "sub_details"}
+        )
+        
+        return jsonify({"flashcards": flashcards, "cached": False}), 200
+        
+    except LLMConnectionError as e:
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate flashcards: {str(e)}"}), 500

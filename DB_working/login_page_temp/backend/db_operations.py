@@ -323,11 +323,51 @@ class DatabaseOperations:
         if topic:
             query["topic"] = topic
         return list(quiz_status_collection.find(query, {"_id": 0}).sort("updated_at", -1))
-    
+
+    # --- XP Utilities ---
+    @staticmethod
+    def get_xp(user_email):
+        doc = progress_collection.find_one({"email": user_email}, {"_id": 0, "xp": 1})
+        return int(doc.get("xp", 0)) if doc else 0
+
+    @staticmethod
+    def add_xp(user_email, delta):
+        now = datetime.now(timezone.utc)
+        res = progress_collection.update_one(
+            {"email": user_email},
+            {"$inc": {"xp": int(delta)}, "$setOnInsert": {"created_at": now.isoformat()}},
+            upsert=True
+        )
+        # Return updated value
+        doc = progress_collection.find_one({"email": user_email}, {"_id": 0, "xp": 1})
+        return int(doc.get("xp", 0)) if doc else 0
+
     # --- PDF Summaries ---
     @staticmethod
     def save_pdf_summary(user_email, pdf_name, summary_content):
-        """Save PDF summary for a user"""
+        """Save PDF summary for a user with auto-incremented name if duplicate exists"""
+        # Check if PDF with same name already exists for this user
+        existing = pdf_summary_collection.find_one({
+            "user_email": user_email,
+            "pdf_name": pdf_name
+        })
+        
+        # If exists, generate incremental name
+        if existing:
+            base_name, ext = pdf_name.rsplit('.', 1) if '.' in pdf_name else (pdf_name, '')
+            counter = 1
+            
+            while True:
+                new_name = f"{base_name}({counter}).{ext}" if ext else f"{base_name}({counter})"
+                exists = pdf_summary_collection.find_one({
+                    "user_email": user_email,
+                    "pdf_name": new_name
+                })
+                if not exists:
+                    pdf_name = new_name
+                    break
+                counter += 1
+        
         pdf_summary_doc = {
             "user_email": user_email,
             "pdf_name": pdf_name,

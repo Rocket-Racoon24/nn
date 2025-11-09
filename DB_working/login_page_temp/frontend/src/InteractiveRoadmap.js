@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useTextSelection from './components/TextSelection'; // Assuming path is correct
+import FlashcardView from './components/FlashcardView';
 import './styles/Roadmap.css';
 
 // ====================================================================
@@ -11,7 +12,7 @@ import './styles/Roadmap.css';
 function StudyItemDetail({ term, subDetails, isLoading, error, context }) {
   const renderCount = useRef(0);
   renderCount.current++;
-  console.log("🔁 StudyItemDetail render:", renderCount.current, {
+  console.log(" StudyItemDetail render:", renderCount.current, {
     term,
     isLoading,
     error,
@@ -24,6 +25,39 @@ function StudyItemDetail({ term, subDetails, isLoading, error, context }) {
 
   const containerRef = useTextSelection(handleAskXiao);
 
+  const [flashLoading, setFlashLoading] = useState(false);
+  const [flashError, setFlashError] = useState('');
+  const [flashcards, setFlashcards] = useState(null);
+  const [showFlashcardView, setShowFlashcardView] = useState(false);
+
+  const handleGenerateFlashcards = async () => {
+    if (!term || !context || flashLoading) return;
+    setFlashError('');
+    setFlashcards(null); // Clear previous flashcards
+    setFlashLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/generate_flashcards_for_note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ topic: context, term })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate flashcards');
+      }
+      const cards = Array.isArray(data.flashcards) ? data.flashcards : [];
+      setFlashcards(cards);
+      if (cards.length > 0) {
+        setShowFlashcardView(true);
+      }
+    } catch (e) {
+      setFlashError(e.message);
+    } finally {
+      setFlashLoading(false);
+    }
+  };
+
   // This simple "no term" placeholder is all that's needed now
   if (!term) {
     return (
@@ -35,12 +69,85 @@ function StudyItemDetail({ term, subDetails, isLoading, error, context }) {
     );
   }
 
+  // Show FlashcardView if flashcards are ready
+  if (showFlashcardView && flashcards && flashcards.length > 0) {
+    return (
+      <FlashcardView 
+        flashcards={flashcards} 
+        onBack={() => {
+          setShowFlashcardView(false);
+          setFlashcards(null);
+        }} 
+      />
+    );
+  }
+
   return (
     <div className="detail-view-right-panel">
+      {/* Full-page loading overlay for flashcard generation */}
+      {flashLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          color: '#00ff9c'
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+          <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Generating Flashcards...</p>
+          <p style={{ fontSize: '0.9rem', color: '#aaa' }}>Please wait while AI creates your flashcards</p>
+        </div>
+      )}
+
       <div 
         ref={containerRef} // Ref is attached here
         className="study-item-detail-display" 
       >
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+          <button 
+            onClick={handleGenerateFlashcards} 
+            disabled={flashLoading || isLoading || !!error}
+            style={{
+              background: flashLoading || isLoading || !!error 
+                ? 'rgba(30, 30, 30, 0.5)' 
+                : '#000',
+              color: flashLoading || isLoading || !!error ? 'rgba(0, 255, 156, 0.5)' : '#00ff9c',
+              border: flashLoading || isLoading || !!error ? '2px solid rgba(0, 255, 156, 0.3)' : '2px solid #00ff9c',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              cursor: flashLoading || isLoading || !!error ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+              boxShadow: flashLoading || isLoading || !!error 
+                ? 'none' 
+                : '0 0 12px rgba(0, 255, 156, 0.4)',
+              transition: '0.3s ease-in-out',
+              fontSize: '0.95rem'
+            }}
+            onMouseEnter={(e) => {
+              if (!flashLoading && !isLoading && !error) {
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.boxShadow = '0 0 16px rgba(0, 255, 156, 0.6), 0 0 24px rgba(0, 255, 156, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'scale(1)';
+              e.target.style.boxShadow = flashLoading || isLoading || !!error 
+                ? 'none' 
+                : '0 0 12px rgba(0, 255, 156, 0.4)';
+            }}
+          >
+            {flashLoading ? '⏳ Generating...' : '🎴 Flashcards'}
+          </button>
+        </div>
+
         {isLoading && (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <p className="loading-text">Generating details...</p>
@@ -57,6 +164,20 @@ function StudyItemDetail({ term, subDetails, isLoading, error, context }) {
         {/* Handles the case where a term is selected but has no details/is not loading */}
         {!isLoading && !error && !subDetails && (
           <p className="placeholder-text">Loading...</p>
+        )}
+
+        {/* Flashcards error */}
+        {flashError && (
+          <div style={{ 
+            padding: '12px', 
+            marginTop: '16px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '6px',
+            color: '#ef4444' 
+          }}>
+            <strong>⚠️ Error:</strong> {flashError}
+          </div>
         )}
       </div>
     </div>

@@ -13,11 +13,15 @@ function Quiz() {
   const [topic, setTopic] = useState('');
   const [mainTopic, setMainTopic] = useState('');
   const [currentQuestions, setCurrentQuestions] = useState([]);
-  const [view, setView] = useState('start'); // 'start', 'loading', 'quiz', 'results', 'practice'
+  const [view, setView] = useState('start'); // 'start', 'loading', 'quiz', 'results'
   const [currentQuizType, setCurrentQuizType] = useState(null); // 'mcq', 'descriptive', 'practice'
   const [practiceMode, setPracticeMode] = useState(false);
   const [practiceNumQuestions, setPracticeNumQuestions] = useState(10);
   const [practiceQuizType, setPracticeQuizType] = useState('MCQ');
+
+  // Timer for mandatory quizzes
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isFinalQuiz, setIsFinalQuiz] = useState(false);
   
   const [mcqScore, setMcqScore] = useState(0);
   const [mcqTotal, setMcqTotal] = useState(0);
@@ -69,9 +73,21 @@ function Quiz() {
       }
     }
 
-    // Load quiz completion status from localStorage
+    // Load quiz completion status from backend
     loadQuizStatus();
   }, [searchParams, loadQuizStatus]);
+
+  // Tick timer if running for mandatory quizzes
+  useEffect(() => {
+    if (view === 'quiz' && !practiceMode && timerSeconds > 0) {
+      const id = setInterval(() => setTimerSeconds((s) => s - 1), 1000);
+      return () => clearInterval(id);
+    } else if (view === 'quiz' && !practiceMode && timerSeconds === 0 && (currentQuizType === 'mcq' || currentQuizType === 'descriptive')) {
+      if (!isSubmitting) {
+        handleSubmitQuiz();
+      }
+    }
+  }, [view, practiceMode, timerSeconds, currentQuizType, isSubmitting]);
 
   
 
@@ -99,19 +115,22 @@ function Quiz() {
   };
 
   const handleStartMCQ = async () => {
-    await handleStartQuiz('mcq', 'MCQ', 10);
+    // Determine if this is a final quiz (roadmap-level)
+    const finalFlag = (topic && mainTopic && topic === mainTopic);
+    await handleStartQuiz('mcq', 'MCQ', finalFlag ? 20 : 10, finalFlag);
   };
 
   const handleStartDescriptive = async () => {
-    await handleStartQuiz('descriptive', 'Descriptive', 10);
+    const finalFlag = (topic && mainTopic && topic === mainTopic);
+    await handleStartQuiz('descriptive', 'Descriptive', finalFlag ? 20 : 10, finalFlag);
   };
 
   const handleStartPractice = async () => {
-    await handleStartQuiz('practice', practiceQuizType, parseInt(practiceNumQuestions));
+    await handleStartQuiz('practice', practiceQuizType, parseInt(practiceNumQuestions), false);
     setPracticeMode(true);
   };
 
-  const handleStartQuiz = async (type, quizTypeParam, numQuestions) => {
+  const handleStartQuiz = async (type, quizTypeParam, numQuestions, finalFlag) => {
     if (!topic) {
       setToast({ message: "Error: No topic found. Returning to roadmap.", type: 'error' });
       navigate('/home');
@@ -120,6 +139,18 @@ function Quiz() {
 
     setCurrentQuizType(type);
     setView('loading');
+    setIsFinalQuiz(Boolean(finalFlag));
+
+    // Set timer for mandatory quizzes only
+    if (type !== 'practice') {
+      if (quizTypeParam === 'MCQ') {
+        setTimerSeconds(finalFlag ? 15 * 60 : 5 * 60);
+      } else if (quizTypeParam === 'Descriptive') {
+        setTimerSeconds(finalFlag ? 30 * 60 : 15 * 60);
+      }
+    } else {
+      setTimerSeconds(0);
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -235,9 +266,10 @@ function Quiz() {
     const isDescriptive = currentQuizType === 'descriptive' || (currentQuizType === 'practice' && practiceQuizType === 'Descriptive');
     
     if (isMCQ && mcqTotalCount > 0) {
-      const passed = mcqScoreCount >= 6;
+      const passMark = 7;
+      const passed = mcqScoreCount >= passMark;
       feedbackText = `MCQ: ${mcqScoreCount}/${mcqTotalCount}. `;
-      feedbackText += passed ? "✓ Passed! (6/10 required)" : "✗ Failed! (Need 6/10 to pass)";
+      feedbackText += passed ? `✓ Passed! (${passMark}/${mcqTotalCount} required)` : `✗ Failed! (Need ${passMark}/${mcqTotalCount} to pass)`;
       
       if (!practiceMode) {
         // Save status to backend regardless of pass/fail
@@ -254,9 +286,10 @@ function Quiz() {
         })();
       }
     } else if (isDescriptive && descriptiveTotalCount > 0) {
-      const passed = descriptiveScoreCount >= 6;
+      const passMark = 7;
+      const passed = descriptiveScoreCount >= passMark;
       feedbackText = `Descriptive: ${descriptiveScoreCount}/${descriptiveTotalCount}. `;
-      feedbackText += passed ? "✓ Passed! (6/10 required)" : "✗ Failed! (Need 6/10 to pass)";
+      feedbackText += passed ? `✓ Passed! (${passMark}/${descriptiveTotalCount} required)` : `✗ Failed! (Need ${passMark}/${descriptiveTotalCount} to pass)`;
       
       if (!practiceMode) {
         (async () => {
@@ -290,7 +323,8 @@ function Quiz() {
     const computedFinalScore = (isMCQ && !isDescriptive) ? mcqScoreCount : (isDescriptive && !isMCQ) ? descriptiveScoreCount : (mcqScoreCount + descriptiveScoreCount);
     const computedFinalTotal = (isMCQ && !isDescriptive) ? mcqTotalCount : (isDescriptive && !isMCQ) ? descriptiveTotalCount : (mcqTotalCount + descriptiveTotalCount);
 
-    const passed = (isMCQ && !isDescriptive) ? (mcqScoreCount >= 6) : (isDescriptive && !isMCQ) ? (descriptiveScoreCount >= 6) : (computedFinalTotal > 0 ? ((computedFinalScore / computedFinalTotal) * 100) >= 60 : false);
+    const passMark = isFinalQuiz ? 14 : 7;
+    const passed = (isMCQ && !isDescriptive) ? (mcqScoreCount >= passMark) : (isDescriptive && !isMCQ) ? (descriptiveScoreCount >= passMark) : (computedFinalTotal > 0 ? ((computedFinalScore / computedFinalTotal) * 100) >= (isFinalQuiz ? 70 : 60) : false);
 
     const quizTypeForSave = (currentQuizType === 'practice') ? practiceQuizType : (currentQuizType === 'mcq' ? 'MCQ' : 'Descriptive');
 
@@ -331,6 +365,7 @@ function Quiz() {
             user_answers: userAnswers,
             scores,
             passed,
+            final_quiz: isFinalQuiz
           })
         });
       } catch (e) {
@@ -366,7 +401,7 @@ function Quiz() {
     loadQuizStatus();
   };
 
-  const canAccessPractice = mcqPassed && descriptivePassed;
+  const canAccessPractice = true;
 
   return (
     <div className="quiz-container">
@@ -402,34 +437,40 @@ function Quiz() {
             </div>
           </div>
 
-          {canAccessPractice && (
-            <div className="practice-quiz-section">
-              <h2>Practice Quiz (Unlocked!)</h2>
-              <p>Customize your practice quiz:</p>
-              <div className="practice-options">
-                <select 
-                  value={practiceQuizType}
-                  onChange={(e) => setPracticeQuizType(e.target.value)}
-                >
-                  <option value="MCQ">MCQ Only</option>
-                  <option value="Descriptive">Descriptive Only</option>
-                  <option value="Both">MCQ & Descriptive</option>
-                </select>
-                <select 
-                  value={practiceNumQuestions}
-                  onChange={(e) => setPracticeNumQuestions(e.target.value)}
-                >
-                  <option value="5">5 Questions</option>
-                  <option value="10">10 Questions</option>
-                  <option value="15">15 Questions</option>
-                  <option value="20">20 Questions</option>
-                </select>
-                <button className="practice-quiz-button" onClick={handleStartPractice}>
-                  Start Practice Quiz
-                </button>
-              </div>
+          <div className="practice-quiz-section">
+            <h2>Practice Quiz</h2>
+            <p>Customize your practice quiz:</p>
+            <div className="practice-options">
+              <select 
+                value={practiceQuizType}
+                onChange={(e) => setPracticeQuizType(e.target.value)}
+              >
+                <option value="MCQ">MCQ Only</option>
+                <option value="Descriptive">Descriptive Only</option>
+                <option value="Both">MCQ & Descriptive</option>
+              </select>
+              <select 
+                value={practiceNumQuestions}
+                onChange={(e) => setPracticeNumQuestions(e.target.value)}
+              >
+                {(topic && mainTopic && topic === mainTopic) ? (
+                  <>
+                    <option value="10">10 Questions</option>
+                    <option value="15">15 Questions</option>
+                    <option value="20">20 Questions</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="5">5 Questions</option>
+                    <option value="10">10 Questions</option>
+                  </>
+                )}
+              </select>
+              <button className="practice-quiz-button" onClick={handleStartPractice}>
+                Start Practice Quiz
+              </button>
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -442,6 +483,11 @@ function Quiz() {
           <button className="back-to-start-button" onClick={handleBackToStart}>
             ← Back to Quiz Selection
           </button>
+          {!practiceMode && (
+            <div className="timer" style={{marginBottom: '12px'}}>
+              Time left: {Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}
+            </div>
+          )}
           <div id="quiz-questions-container">
             {currentQuestions.map((q, index) => (
               <div key={index} className="question-item" data-type={q.type}>
@@ -493,16 +539,18 @@ function Quiz() {
           
           {!practiceMode && (
             <div className="pass-status">
-              {(currentQuizType === 'mcq' && mcqScore >= 6) || 
-               (currentQuizType === 'descriptive' && descriptiveScore >= 6) ? (
+              {(
+                (currentQuizType === 'mcq' && mcqScore >= (isFinalQuiz ? 14 : 7)) || 
+                (currentQuizType === 'descriptive' && descriptiveScore >= (isFinalQuiz ? 14 : 7))
+              ) ? (
                 <p className="pass-message">✓ Congratulations! You passed!</p>
               ) : (
-                <p className="fail-message">✗ You need 6/10 to pass. Try again!</p>
+                <p className="fail-message">{`✗ You need ${isFinalQuiz ? '14/20' : '7/10'} to pass. Try again!`}</p>
               )}
             </div>
           )}
           
-          {/* Detailed question review */}
+          {/* Detailed question review with Explain buttons */}
           <div className="results-detail">
             {currentQuestions.map((q, index) => {
               const ua = lastUserAnswers[index];
@@ -530,6 +578,7 @@ function Quiz() {
                       <p><strong>Ideal answer:</strong> {q.ideal_answer}</p>
                     </div>
                   )}
+                  <ExplainButton q={q} userAns={userAns} index={index} />
                 </div>
               );
             })}
@@ -567,6 +616,52 @@ function Quiz() {
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+    </div>
+  );
+}
+
+// Inline ExplainButton component
+function ExplainButton({ q, userAns, index }) {
+  const [loading, setLoading] = React.useState(false);
+  const [text, setText] = React.useState(null);
+  const handleExplain = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/explain_quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          type: q.type,
+          question: q.question,
+          correct_answer: q.type === 'mcq' ? q.answer : undefined,
+          ideal_answer: q.type === 'descriptive' ? q.ideal_answer : undefined,
+          user_answer: userAns
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setText(data.explanation || 'No explanation available');
+      } else {
+        setText(data.error || 'Failed to fetch explanation');
+      }
+    } catch (e) {
+      setText('Failed to fetch explanation');
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div style={{marginTop: '8px'}}>
+      <button onClick={handleExplain} className="explain-button" disabled={loading}>
+        {loading ? 'Explaining...' : 'Explain'}
+      </button>
+      {text && (
+        <div className="explain-text" style={{marginTop: '8px', color: '#a9ffdf'}}>
+          {text}
+        </div>
       )}
     </div>
   );

@@ -23,8 +23,10 @@ function RoadmapGenerator({ onRoadmapGenerated }) { // Receives a function as a 
         body: JSON.stringify({ query }),
       });
       if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 503) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 409 && errorData && errorData.exists) {
+          setError(`Roadmap for "${errorData.topic || query}" already exists.`);
+        } else if (response.status === 503) {
           setError("AI is offline. Please start the LLM server on port 8080 and try again.");
         } else {
           setError(errorData.error || "Failed to generate roadmap");

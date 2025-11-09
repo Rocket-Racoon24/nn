@@ -4,6 +4,30 @@ from auth_routes import token_required
 
 progress_bp = Blueprint('progress_bp', __name__)
 
+# --- Helpers ---
+LEVELS = [100, 250, 500, 750, 1000]
+BADGES = ["Rookie", "Learner", "Scholar", "Expert", "Master"]
+
+def compute_level_badge(xp: int):
+    level = 1
+    cap = LEVELS[0]
+    badge = BADGES[0]
+    for i, threshold in enumerate(LEVELS):
+        cap = threshold
+        badge = BADGES[i] if i < len(BADGES) else BADGES[-1]
+        if xp < threshold:
+            level = i + 1
+            break
+        level = i + 1
+    # progress within current level
+    prev_cap = 0 if level == 1 else LEVELS[level-2]
+    next_cap = LEVELS[level-1] if level-1 < len(LEVELS) else LEVELS[-1]
+    span = max(1, next_cap - prev_cap)
+    progress = int(round(((xp - prev_cap) / span) * 100)) if xp >= prev_cap else 0
+    if progress > 100:
+        progress = 100
+    return level, badge, next_cap, max(0, progress)
+
 @progress_bp.route("/get_total_time", methods=["GET"])
 @token_required
 def get_total_time():
@@ -52,6 +76,23 @@ def get_progress():
             "last_login_start": progress.get("last_login_start")
         }
         return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@progress_bp.route("/get_xp", methods=["GET"])
+@token_required
+def get_xp():
+    user_email = request.user['email']
+    try:
+        xp = DatabaseOperations.get_xp(user_email)
+        level, badge, next_cap, progress = compute_level_badge(xp)
+        return jsonify({
+            "xp": xp,
+            "level": level,
+            "badge": badge,
+            "next_level_cap": next_cap,
+            "progress_percent": progress
+        }), 200
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
