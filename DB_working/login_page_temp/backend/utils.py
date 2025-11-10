@@ -21,7 +21,7 @@ def get_local_llm_response(prompt_text):
     data = {
         "model": "local-model",
         "messages": [{"role": "user", "content": prompt_text}],
-        "temperature": 0.7,
+        "temperature": 0.1,
         "max_tokens": 12000
     }
     try:

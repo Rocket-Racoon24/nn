@@ -309,7 +309,7 @@ export function Profile({ onBack, topics, user }) {
           filter: 'drop-shadow(0 0 12px rgba(0, 255, 156, 0.5)) drop-shadow(0 0 24px rgba(0, 255, 156, 0.2))',
           margin: 0,
         }}>
-          🚀 Profile & Progress  
+          🚀 Profile & Progress 
         </h1>
         <button
           onClick={onBack}
@@ -507,7 +507,7 @@ export function Profile({ onBack, topics, user }) {
         <h3 style={{
           color: '#00ff9c',
           marginBottom: '24px',
-          fontSize: '24px',
+          fontSize: '50px',
           fontWeight: 'bold',
           textShadow: '0 0 12px rgba(0, 255, 156, 0.5)',
         }}>
@@ -520,7 +520,7 @@ export function Profile({ onBack, topics, user }) {
               <div
                 key={tp.topic}
                 style={{
-                  padding: '20px',
+                  padding: '50px',
                   background: 'rgba(0, 255, 156, 0.05)',
                   borderRadius: '12px',
                   border: '1px solid rgba(0, 255, 156, 0.15)',
