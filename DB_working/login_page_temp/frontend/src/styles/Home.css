@@ -120,10 +120,18 @@
           flex: 1;
           display: flex;
           flex-direction: column;
+          padding: 20px; 
           padding: 20px;
           position: relative;
           /* Remove padding for the no-summary-view to be full screen */
         }
+
+        /* put near bottom of Home.css */
+        .main .centered {
+        justify-content: flex-start; /* stop vertical centering */
+         margin-top: 120px;           /* tweak this number */
+        }
+
         main.no-padding {
           padding: 0;
         }

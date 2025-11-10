@@ -19,8 +19,8 @@ const neonStyle = {
     borderColor: 'rgba(0, 255, 156, 0.4)',
   },
   button: {
-    padding: '12px 24px',
-    borderRadius: '8px',
+    padding: '12px 15px',
+    borderRadius: '6px',
     cursor: 'pointer',
     fontWeight: 'bold',
     fontSize: '14px',
@@ -300,7 +300,7 @@ export function Profile({ onBack, topics, user }) {
         animation: 'fadeIn 0.5s ease-out',
       }}>
         <h1 style={{
-          fontSize: '2.5rem',
+          fontSize: '2rem',
           fontWeight: '700',
           background: 'linear-gradient(90deg, #00ff9c, #00d68a)',
           WebkitBackgroundClip: 'text',
@@ -309,7 +309,7 @@ export function Profile({ onBack, topics, user }) {
           filter: 'drop-shadow(0 0 12px rgba(0, 255, 156, 0.5)) drop-shadow(0 0 24px rgba(0, 255, 156, 0.2))',
           margin: 0,
         }}>
-          🚀 Profile & Progress
+          🚀 Profile & Progress  
         </h1>
         <button
           onClick={onBack}

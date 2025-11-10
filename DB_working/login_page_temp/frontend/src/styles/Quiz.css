@@ -27,7 +27,7 @@
 .quiz-loading-view,
 .quiz-view,
 .quiz-results-view {
-  background: linear-gradient(135deg, rgba(14, 25, 27, 0.9), rgba(14, 25, 27, 0.7));
+  background: linear-gradient(135deg, rgba(10, 40, 30, 0.9), rgba(10, 30, 25, 0.8));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 16px;
@@ -39,18 +39,7 @@
   overflow: hidden;
 }
 
-.quiz-start-view::before,
-.quiz-results-view::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(0, 255, 156, 0.1) 0%, transparent 70%);
-  animation: glow 4s ease-in-out infinite;
-  pointer-events: none;
-}
+
 
 .quiz-topic-title {
   font-size: 3rem;
@@ -541,5 +530,3 @@
 .results-buttons .back-to-roadmap-button {
   margin-bottom: 0;
 }
-
-

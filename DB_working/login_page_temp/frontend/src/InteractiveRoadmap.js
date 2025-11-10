@@ -30,6 +30,13 @@ function StudyItemDetail({ term, subDetails, isLoading, error, context }) {
   const [flashcards, setFlashcards] = useState(null);
   const [showFlashcardView, setShowFlashcardView] = useState(false);
 
+  useEffect(() => {
+    // If the term prop changes, we must exit the flashcard view.
+    setShowFlashcardView(false);
+    setFlashcards(null); // Clear old flashcards
+    setFlashError('');   // Clear old errors
+  }, [term]);
+
   const handleGenerateFlashcards = async () => {
     if (!term || !context || flashLoading) return;
     setFlashError('');
@@ -619,9 +626,6 @@ function InteractiveRoadmap({ topics, topicTitle, onNewSearch, onShowToast }) {
       </div>
       
       <div className="roadmap-footer">
-        <div className="completion-bar">
-          Roadmap completion: {completionPercent}%
-        </div>
         <button
           onClick={() => navigate(`/quiz?topic=${encodeURIComponent(topicTitle)}&mainTopic=${encodeURIComponent(topicTitle)}`)}
           className="footer-button quiz-link"

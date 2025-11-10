@@ -266,10 +266,9 @@ function Quiz() {
     const isDescriptive = currentQuizType === 'descriptive' || (currentQuizType === 'practice' && practiceQuizType === 'Descriptive');
     
     if (isMCQ && mcqTotalCount > 0) {
-      const passMark = 7;
-      const passed = mcqScoreCount >= passMark;
+   
       feedbackText = `MCQ: ${mcqScoreCount}/${mcqTotalCount}. `;
-      feedbackText += passed ? `✓ Passed! (${passMark}/${mcqTotalCount} required)` : `✗ Failed! (Need ${passMark}/${mcqTotalCount} to pass)`;
+      
       
       if (!practiceMode) {
         // Save status to backend regardless of pass/fail
@@ -286,10 +285,9 @@ function Quiz() {
         })();
       }
     } else if (isDescriptive && descriptiveTotalCount > 0) {
-      const passMark = 7;
-      const passed = descriptiveScoreCount >= passMark;
+  
       feedbackText = `Descriptive: ${descriptiveScoreCount}/${descriptiveTotalCount}. `;
-      feedbackText += passed ? `✓ Passed! (${passMark}/${descriptiveTotalCount} required)` : `✗ Failed! (Need ${passMark}/${descriptiveTotalCount} to pass)`;
+    
       
       if (!practiceMode) {
         (async () => {
@@ -415,7 +413,7 @@ function Quiz() {
           <h1 className="quiz-topic-title">Quiz: {topic || 'Loading Topic...'}</h1>
           
           <div className="mandatory-quizzes">
-            <h2>Mandatory Quizzes (10 questions each, 6/10 to pass)</h2>
+            <h2>Mandatory Quizzes</h2>
             <div className="quiz-buttons-container">
               <button 
                 className={`quiz-type-button mcq-button ${mcqPassed ? 'passed' : ''}`}

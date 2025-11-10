@@ -1,23 +1,27 @@
 // src/components/Header.js
 import React, { useState, useRef, useEffect } from 'react';
 import { PomodoroPanel } from '../Pomodoro'; // Assuming Pomodoro.js is in src/
-import styles from './Header.module.css'; // You will need to create Header.module.css
+import styles from './Header.module.css';
 
 const Header = ({ user, onShowProfile, onLogout, onToggleSummary, onShowSettings }) => {
-  // State for dropdowns is now local to the Header
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [pomodoroOpen, setPomodoroOpen] = useState(false);
+
   const clockRef = useRef(null);
   const profileMenuRef = useRef(null);
+  const profileButtonRef = useRef(null); // 🔧 Added clean reference for profile button
 
-  // Close profile menu when clicking outside
+  // 🔹 Close profile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showProfileMenu && profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-        const profileButton = event.target.closest(`.${styles['profile']}`);
-        if (!profileButton) {
-          setShowProfileMenu(false);
-        }
+      if (
+        showProfileMenu &&
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target) &&
+        profileButtonRef.current &&
+        !profileButtonRef.current.contains(event.target)
+      ) {
+        setShowProfileMenu(false);
       }
     };
 
@@ -27,10 +31,14 @@ const Header = ({ user, onShowProfile, onLogout, onToggleSummary, onShowSettings
     };
   }, [showProfileMenu]);
 
-  // Close Pomodoro when clicking outside
+  // 🔹 Close Pomodoro when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (pomodoroOpen && clockRef.current && !clockRef.current.contains(event.target)) {
+      if (
+        pomodoroOpen &&
+        clockRef.current &&
+        !clockRef.current.contains(event.target)
+      ) {
         const pomodoroPanel = event.target.closest('[data-pomodoro-panel]');
         if (!pomodoroPanel) {
           setPomodoroOpen(false);
@@ -44,17 +52,17 @@ const Header = ({ user, onShowProfile, onLogout, onToggleSummary, onShowSettings
     };
   }, [pomodoroOpen]);
 
-  // This handler is now local to the Header
+  // 🔹 Handle Profile click (opens Profile view)
   const handleProfileClick = () => {
-    setShowProfileMenu(false); // Close the dropdown
-    onShowProfile();           // Tell Home to change the main view
+    setShowProfileMenu(false);
+    onShowProfile();
   };
 
   return (
     <header className={styles['top-bar']}>
       <div style={{ flex: 1 }}></div>
 
-      {/* Pomodoro logic is now contained in the Header */}
+      {/* Pomodoro Button */}
       <button
         ref={clockRef}
         title="Pomodoro Timer"
@@ -63,28 +71,47 @@ const Header = ({ user, onShowProfile, onLogout, onToggleSummary, onShowSettings
       >
         ⏱️
       </button>
+
       <div data-pomodoro-panel>
-        <PomodoroPanel isOpen={pomodoroOpen} setIsOpen={setPomodoroOpen} anchorRef={clockRef} />
+        <PomodoroPanel
+          isOpen={pomodoroOpen}
+          setIsOpen={setPomodoroOpen}
+          anchorRef={clockRef}
+        />
       </div>
 
       {/* Summary Button */}
-      <button className={styles['summary-btn']} onClick={onToggleSummary} title="View Summary">
-          📝
+      <button
+        className={styles['summary-btn']}
+        onClick={onToggleSummary}
+        title="View Summary"
+      >
+        📝
       </button>
-      
-      {/* Profile Menu Logic */}
-      <div className={styles['profile']} onClick={() => setShowProfileMenu(prev => !prev)}>
-          {user ? user.name[0].toUpperCase() : "?"}
+
+      {/* Profile Button */}
+      <div
+        ref={profileButtonRef}
+        className={styles['profile']}
+        onClick={() => setShowProfileMenu((prev) => !prev)}
+      >
+        {user ? user.name[0].toUpperCase() : "?"}
       </div>
-      
+
+      {/* Profile Dropdown Menu */}
       {showProfileMenu && (
-          <div ref={profileMenuRef} className={styles['profile-menu']}>
-            <p onClick={handleProfileClick}>👤 {user ? user.name : "Profile"}</p>
-            <p onClick={() => { setShowProfileMenu(false); onShowSettings && onShowSettings(); }}>⚙️ Settings</p>
-            <p onClick={onLogout}>
-                🚪 Logout
-            </p>
-          </div>
+        <div ref={profileMenuRef} className={styles['profile-menu']}>
+          <p onClick={handleProfileClick}>👤 {user ? user.name : "Profile"}</p>
+          <p
+            onClick={() => {
+              setShowProfileMenu(false);
+              onShowSettings && onShowSettings();
+            }}
+          >
+            ⚙️ Settings
+          </p>
+          <p onClick={onLogout}>🚪 Logout</p>
+        </div>
       )}
     </header>
   );

@@ -18,7 +18,7 @@
     drop-shadow(0 0 1px rgba(0, 255, 156, 0.8))
     drop-shadow(0 0 6px rgba(0, 255, 156, 0.35));
   text-align: center;
-  margin-bottom: 2rem;
+  margin-top: 12rem;
 }
 
 .subtitle {
@@ -106,7 +106,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding: 0 10px 20px 10px;
+  padding: 15px 10px 20px 10px;
   border-bottom: 1px solid rgba(0, 255, 156, 0.2);
 }
 
@@ -214,7 +214,7 @@
 
 .roadmap-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-top: 20px;
   padding-top: 20px;
@@ -438,16 +438,38 @@
 }
 
 .loading-animation {
-  animation: spin 1s linear infinite;
+  /* --- NEW LOADER STYLES --- */
+  /* Size reduced from 48px to 24px to fit the button */
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  position: relative;
+  /* Override text styles from .expand-icon */
+  font-size: 0; 
+  color: transparent;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* Add this right after .loading-animation */
+.loading-animation::after,
+.loading-animation::before {
+  content: '';  
+  box-sizing: border-box;
+  /* Size reduced from 48px to 24px */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #FFF; /* This is the white color you wanted */
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: animloader 2s linear infinite;
+
+  /* --- ADD THIS LINE --- */
+  transform: scale(0); /* Start at scale 0 by default */
 }
 
-.expand-icon.loading-animation::before {
-  content: '⚙️';
+.loading-animation::after {
+  animation-delay: 1s;
 }
 
 /*
@@ -482,4 +504,16 @@ CUSTOM SCROLLBAR STYLES
 ::-webkit-scrollbar-thumb:hover {
   background-color: #00d68a; 
   border-color: #0E191B; 
+}
+
+/* Add this at the end of the file */
+@keyframes animloader {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
 }

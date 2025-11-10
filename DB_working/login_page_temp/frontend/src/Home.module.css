@@ -26,9 +26,10 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   text-align: center;
+  margin-top: 1200px;
 }
 .neon {
   background: linear-gradient(90deg, #00ff9c, #00d68a);
@@ -45,7 +46,7 @@
   
   .search-box {
     display: flex;
-    margin: 20px auto;
+    margin: 40px auto;
     max-width: 500px;
     width: 100%;
   }

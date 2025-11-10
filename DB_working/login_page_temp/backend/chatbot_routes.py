@@ -41,12 +41,12 @@ The target audience is a **Graduate Student or a Mid-to-Senior Level Professiona
 Structure the summary using the following specific hierarchy. **Use bolding (`**...**`) judiciously for key terms.**
 ---
 # Summary of "[Document Title or Source]" by [Author(s)]
-## 庁 Executive Summary & Document Thesis
+## Executive Summary & Document Thesis
 * A 2-3 sentence overview covering the document's central argument, scope, and target impact.
-## 泊 Core Themes and Structural Blueprint
+## Core Themes and Structural Blueprint
 * A bulleted list explaining the logical flow and main sections/parts of the document.
 ---
-## 溌 In-Depth Analysis: [Major Theme 1 - e.g., Foundations of Machine Learning]
+## In-Depth Analysis: [Major Theme 1 - e.g., Foundations of Machine Learning]
 ### [Sub-Concept A: The Theory - e.g., Probability Theory]
 * **Definition/Principle:** [Technical explanation of the concept.]
 * **Significance/Role:** [Why this concept is critical in the domain.]
@@ -55,7 +55,7 @@ Structure the summary using the following specific hierarchy. **Use bolding (`**
     * *Algorithm Name 1:* [Brief explanation and when to use it.]
     * *Algorithm Name 2:* [Brief explanation and when to use it.]
 ---
-## 嶋 Broader Implications and Next Steps
+## Broader Implications and Next Steps
 * **Practical Takeaways:** The 2-3 most valuable lessons for a practicing professional.
 * **Open Questions/Future Work (if applicable):** Note any limitations or areas the document suggests for future exploration.
 ---

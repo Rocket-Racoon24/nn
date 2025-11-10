@@ -19,10 +19,6 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
             <span></span>
           </div>
         </div>
-
-        <div className={styles['loading-bar']}>
-          <div className={styles['loading-bar-fill']}></div>
-        </div>
       </div>
     </div>
   );
